@@ -160,13 +160,13 @@ requires std.io >=0.1.0
 
 ```
 ipod/
-â”œâ”€â”€ veny.mod
-â””â”€â”€ src/
-    â””â”€â”€ ipod/
-        â”œâ”€â”€ Main.vn              â†’ package ipod
-        â”œâ”€â”€ config/              â†’ package ipod.config
-        â”œâ”€â”€ core/                â†’ package ipod.core
-        â””â”€â”€ persistence/         â†’ package ipod.persistence
+├── veny.mod
+└── src/
+    └── ipod/
+        ├── Main.vn              → package ipod
+        ├── config/              → package ipod.config
+        ├── core/                → package ipod.core
+        └── persistence/         → package ipod.persistence
 ```
 
 ### Multiple Classes per File
