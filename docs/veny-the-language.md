@@ -80,13 +80,13 @@ The type system is static and explicit. The compiler checks all types at compile
 Everything in Veny is an expression where possible. You write code like this:
 
 ```veny
-if (score > 90) {
+if score > 90 {
     System.print("Excellent")
 } else {
     System.print("Keep trying")
 }
 
-while (active) {
+while active {
     tick()
     break
 }
