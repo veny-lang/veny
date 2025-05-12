@@ -6,13 +6,13 @@ This document is an informal but precise introduction to the core ideas and feat
 
 ## 1. Hello, Veny
 
-Every Veny program begins with a `package` declaration, followed by class definitions. There are no global functionsâ€”everything lives in a class.
+Every Veny program begins with a `package` declaration, followed by class definitions. There are no global functions — everything lives in a class.
 
 ```veny
 package hello
 
 class Hello {
-    run(): void {
+    sayHellow(): void {
         System.print("Hello, world!")
     }
 }
@@ -42,7 +42,7 @@ pub val version: String = "v0.5"
 
 ## 3. Visibility and Accessors
 
-Venyâ€™s visibility system is designed to reduce boilerplate:
+Veny’s visibility system is designed to reduce boilerplate:
 
 - Fields are **private by default**.
 - Methods are **public by default**.
@@ -50,8 +50,8 @@ Venyâ€™s visibility system is designed to reduce boilerplate:
 
 Public fields automatically gain accessors:
 
-- `obj.field()` â†’ getter
-- `obj.field(value)` â†’ setter (only for `var` fields)
+- `obj.field()` -> getter
+- `obj.field(value)` -> setter (only for `var` fields)
 
 ```veny
 pub var count: Int = 0

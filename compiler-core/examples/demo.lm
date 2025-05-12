@@ -1,0 +1,83 @@
+package demo.app
+
+import std.io
+
+class MathUtils {
+    pub val pi: Float = 3.1415
+    pub var precision: Int = 2
+    var usageCount: Int = 0
+
+    round(value: Float): Float {
+        usageCount = usageCount + 1
+        // Simulate rounding logic
+        return value  // Placeholder
+    }
+
+    pri logUsage(): void {
+        System.print("MathUtils used " + usageCount + " times")
+    }
+}
+
+class User {
+    pub val name: String = "Alice"
+    var age: Int = 0
+    pri val id: Int = 0
+
+    constructor(name: String, age: Int, id: Int): void {
+        this.name = name
+        this.age = age
+        this.id = id
+    }
+
+    birthday(): void {
+        age = age + 1
+    }
+
+    pri getId(): Int {
+        return id
+    }
+}
+
+class Program {
+    val greeter: Greeter = Greeter()
+    var active: Bool = true
+
+    run(): void {
+
+        val math: MathUtils = MathUtils()
+        val radius: Float = 5.0
+        val area: Float = math.pi * radius * radius
+
+        if area > 50.0 {
+            System.print("Large circle: " + area)
+        } else {
+            System.print("Small circle: " + area)
+        }
+
+        while active {
+            System.print("Running main loop...")
+            break
+        }
+
+        val done: Bool = true
+        if !done {
+            System.print("Still processing")
+        } else {
+            System.print("Finished")
+        }
+    }
+}
+
+class Greeter {
+    pub val greeting: String = "Hello"
+    var count: Int = 0
+
+    greet(name: String): void {
+        System.print(greeting + ", " + name)
+        count = count + 1
+    }
+
+    pri log(): void {
+        System.print("Greeted " + count + " times")
+    }
+}

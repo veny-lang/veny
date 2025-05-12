@@ -1,0 +1,47 @@
+package demo.advanced
+
+import std.io
+
+class FeatureTest {
+    var count: Int = 10
+    pub val status: Bool = true
+
+    testLogic(): void {
+        val x: Int = 5
+        val y: Int = 10
+
+        if x < y {
+            System.print("x is less than y")
+        }
+
+        if x != y {
+            System.print("x and y are not equal")
+        }
+
+        if x == 5 && y >= 10 {
+            System.print("x is 5 and y is at least 10")
+        }
+
+        // Shadowing test
+        val count: Int = 3
+        System.print("Shadowed count: " + count)
+    }
+
+    testLoop(): void {
+        for i in list {
+            System.print(i)
+        }
+        System.print("Loop index: " + i)
+.    }
+
+    testLiterals(): void {
+        val isDone: Bool = false
+        val value: Float = null  // Should trigger null assignment
+        System.print("Done? " + isDone)
+    }
+
+    /*
+     * This is a multiline comment
+     * explaining the feature test class.
+     */
+}

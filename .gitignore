@@ -1,0 +1,45 @@
+# Maven
+target/
+**/target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+# Ignore module-specific metadata, but not all XML
+workspace.xml
+tasks.xml
+usage.statistics.xml
+shelf/
+
+# VSCode
+.vscode/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# macOS / Windows / Linux system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Java build output
+bin/
+out/
+
+# JARs / artifacts
+*.jar
+*.war
+*.ear
+
+# Gradle
+.gradle/
+build/
+
+# Eclipse
+.project
+.classpath
+.settings/

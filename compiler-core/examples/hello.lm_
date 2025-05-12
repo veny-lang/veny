@@ -1,0 +1,10 @@
+package hello
+
+class Hello {
+    var name: String = "Alice"
+
+    greet() {
+        System.print("Hello, " + name)
+    }
+}
+
