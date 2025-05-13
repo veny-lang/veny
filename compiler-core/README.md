@@ -1,6 +1,6 @@
-# Lumina Compiler
+# Veny Compiler
 
-**Lumina** is a modern, lightweight, object-oriented programming language inspired by Java and Go.  
+**Veny** is a modern, lightweight, object-oriented programming language inspired by Java and Go.  
 It simplifies the Java programming experience by reducing boilerplate while preserving strong typing, classes, and methods.  
 Lumina programs are compiled to executable code, combining ease of writing with high performance.
 
