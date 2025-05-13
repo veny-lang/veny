@@ -32,7 +32,7 @@ This repository contains multiple subprojects that make up the Veny language eco
 ### Prerequisites
 
 - Java 17+
-- Gradle 8+
+- Maven 3.9.6
 
 ### Build and Run
 
@@ -42,7 +42,7 @@ git clone https://github.com/yourusername/veny.git
 cd veny
 
 # Build all modules
-./gradlew build
+mvn clean install
 
 # Run the CLI
 ./veny-cli/build/libs/veny-cli.jar path/to/file.veny
