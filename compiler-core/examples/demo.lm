@@ -7,6 +7,9 @@ class MathUtils {
     pub var precision: Int = 2
     var usageCount: Int = 0
 
+    // New: Array of supported precisions
+    val supportedPrecisions: [Int] = [1, 2, 3, 4, 5]
+
     round(value: Float): Float {
         usageCount = usageCount + 1
         // Simulate rounding logic
@@ -22,6 +25,9 @@ class User {
     pub val name: String = "Alice"
     var age: Int = 0
     pri val id: Int = 0
+
+    // New: List of login timestamps (placeholder)
+    var loginTimestamps: [String] = []
 
     constructor(name: String, age: Int, id: Int): void {
         this.name = name
@@ -43,10 +49,12 @@ class Program {
     var active: Bool = true
 
     run(): void {
-
         val math: MathUtils = MathUtils()
         val radius: Float = 5.0
         val area: Float = math.pi * radius * radius
+
+        // New: Array of circle radii
+        val radii: [Float] = [1.0, 2.5, 5.0, 10.0]
 
         if area > 50.0 {
             System.print("Large circle: " + area)
@@ -72,9 +80,14 @@ class Greeter {
     pub val greeting: String = "Hello"
     var count: Int = 0
 
+    // New: History of greeted names
+    var greetedNames: [String] = []
+
     greet(name: String): void {
         System.print(greeting + ", " + name)
         count = count + 1
+        // Append to history
+        // Placeholder for: greetedNames.append(name)
     }
 
     pri log(): void {

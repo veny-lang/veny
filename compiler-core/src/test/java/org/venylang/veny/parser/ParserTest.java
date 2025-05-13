@@ -19,8 +19,13 @@ package org.venylang.veny.parser;
 
 import org.venylang.veny.lexer.Lexer;
 import org.venylang.veny.lexer.Token;
+import org.venylang.veny.parser.ast.ClassDecl;
+import org.venylang.veny.parser.ast.Expression;
 import org.venylang.veny.parser.ast.Program;
 import org.junit.jupiter.api.Test;
+import org.venylang.veny.parser.ast.VarDecl;
+import org.venylang.veny.parser.ast.expression.ArrayLiteralExpr;
+import org.venylang.veny.parser.ast.expression.LiteralExpr;
 
 import java.util.List;
 
@@ -57,5 +62,38 @@ public class ParserTest {
         assertTrue(ex.getMessage().contains("Expected '=' to initialize variable"));
     }
 
+    @Test
+    public void testArrayVariableDeclaration() {
+        String source = "class Main { var x: [Int] = [1, 2, 3] }";
+
+        Lexer lexer = new Lexer(source);
+        List<Token> tokens = lexer.scanTokens();
+
+        // Parse it
+        Parser parser = new RecursiveDescentParser(tokens);
+        Program program = parser.parse();
+
+        // Assertions
+        assertNotNull(program);
+        assertEquals(1, program.classes().size());
+
+        ClassDecl classDecl = program.classes().get(0);
+        assertEquals("Main", classDecl.name());
+        assertEquals(1, classDecl.fields().size());
+
+        VarDecl varDecl = classDecl.fields().get(0);
+        assertEquals("x", varDecl.name());
+        assertEquals("[Int]", varDecl.typeName());
+        assertTrue(varDecl.initializer() instanceof ArrayLiteralExpr);
+
+        ArrayLiteralExpr arrayLiteral = (ArrayLiteralExpr) varDecl.initializer();
+        List<Expression> elements = arrayLiteral.elements();
+
+        assertEquals(3, elements.size());
+        assertTrue(elements.get(0) instanceof LiteralExpr);
+        assertEquals(1, ((LiteralExpr) elements.get(0)).value());
+        assertEquals(2, ((LiteralExpr) elements.get(1)).value());
+        assertEquals(3, ((LiteralExpr) elements.get(2)).value());
+    }
 
 }

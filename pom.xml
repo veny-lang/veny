@@ -14,5 +14,6 @@
     <modules>
         <module>compiler-core</module>
         <module>veny-cli</module>
+        <module>stdlib</module>
     </modules>
 </project>

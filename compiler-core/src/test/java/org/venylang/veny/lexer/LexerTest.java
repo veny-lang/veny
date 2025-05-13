@@ -19,6 +19,7 @@ package org.venylang.veny.lexer;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,11 +42,37 @@ public class LexerTest {
 
     @Test
     public void testStringLiteral() {
-        Lexer lexer = new Lexer("var name: String = \"Lumina\";");
+        Lexer lexer = new Lexer("var name: String = \"Veny\"");
         List<Token> tokens = lexer.scanTokens();
 
         assertEquals(TokenType.STRING_LITERAL, tokens.get(5).type());
-        assertEquals("Lumina", tokens.get(5).lexeme());
+        assertEquals("Veny", tokens.get(5).lexeme());
+    }
+
+    @Test
+    public void testArrayDeclaration() {
+        Lexer lexer = new Lexer("var x: [Int] = [1, 2, 3]");
+        List<Token> actual = lexer.scanTokens();
+
+        List<Token> expected = Arrays.asList(
+                new Token(TokenType.VAR, "var", 1),
+                new Token(TokenType.IDENTIFIER, "x", 1),
+                new Token(TokenType.COLON, ":", 1),
+                new Token(TokenType.LBRACKET, "[", 1),
+                new Token(TokenType.IDENTIFIER, "Int", 1),
+                new Token(TokenType.RBRACKET, "]", 1),
+                new Token(TokenType.ASSIGN, "=", 1),
+                new Token(TokenType.LBRACKET, "[", 1),
+                new Token(TokenType.INT_LITERAL, "1", 1),
+                new Token(TokenType.COMMA, ",", 1),
+                new Token(TokenType.INT_LITERAL, "2", 1),
+                new Token(TokenType.COMMA, ",", 1),
+                new Token(TokenType.INT_LITERAL, "3", 1),
+                new Token(TokenType.RBRACKET, "]", 1),
+                new Token(TokenType.EOF, "", 1)
+        );
+
+        assertEquals(expected, actual);
     }
 
 }

@@ -32,7 +32,7 @@ This repository contains multiple subprojects that make up the Veny language eco
 ### Prerequisites
 
 - Java 17+
-- Maven 3.9.6
+- Maven 3.8.7
 
 ### Build and Run
 

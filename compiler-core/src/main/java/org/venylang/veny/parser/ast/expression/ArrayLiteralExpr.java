@@ -17,18 +17,29 @@
 
 package org.venylang.veny.parser.ast.expression;
 
+import java.util.List;
+
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
-public record LiteralExpr(Object value) implements Expression {
+public class ArrayLiteralExpr implements Expression {
+    private final List<Expression> elements;
 
-  @Override
-  public <R> R accept(AstVisitor<R> visitor) {
-    return visitor.visitLiteralExpr(this);
-  }
+    public ArrayLiteralExpr(List<Expression> elements) {
+        this.elements = elements;
+    }
 
-  @Override
-  public String toString() {
-    return "LiteralExpr(" + value + ")";
-  }
+    public List<Expression> elements() {
+        return elements;
+    }
+
+    @Override
+    public <R> R accept(AstVisitor<R> visitor) {
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return "ArrayLiteralExp{}";
+    }
 }

@@ -23,7 +23,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class LuminaLexerTest {
+public class VenyLexerTest {
 
     @Test
     public void testKeywords() {
@@ -65,7 +65,7 @@ public class LuminaLexerTest {
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.scanTokens();
         TokenType[] expected = {
-                TokenType.OPEN_BRACE, TokenType.CLOSE_BRACE, TokenType.OPEN_PAREN, TokenType.CLOSE_PAREN,
+                TokenType.LBRACE, TokenType.RBRACE, TokenType.LPAREN, TokenType.RPAREN,
                 TokenType.COLON, TokenType.SEMICOLON, TokenType.PLUS, TokenType.MINUS,
                 TokenType.STAR, TokenType.SLASH, /*TokenType.EQUAL, TokenType.EQEQ,
                 TokenType.BANGEQ,*/ TokenType.LT, /*TokenType.LTEQ, TokenType.GT, TokenType.GTEQ*/

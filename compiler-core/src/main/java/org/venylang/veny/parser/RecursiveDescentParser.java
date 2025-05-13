@@ -127,12 +127,12 @@ public class RecursiveDescentParser implements Parser {
     private ClassDecl parseClassDecl() {
         expect(TokenType.CLASS);
         String className = expect(TokenType.IDENTIFIER).lexeme();
-        expect(TokenType.OPEN_BRACE);
+        expect(TokenType.LBRACE);
 
         List<VarDecl> fields = new ArrayList<>();
         List<MethodDecl> methods = new ArrayList<>();
 
-        while (peek() != null && Objects.requireNonNull(peek()).type() != TokenType.CLOSE_BRACE) {
+        while (peek() != null && Objects.requireNonNull(peek()).type() != TokenType.RBRACE) {
             // Default visibility if no modifier appears
             Visibility visibility = Visibility.DEFAULT;
 
@@ -147,14 +147,14 @@ public class RecursiveDescentParser implements Parser {
 
             if (next.type() == TokenType.VAR || next.type() == TokenType.VAL) {
                 fields.add(parseVarDecl(visibility));
-            } else if (next.type() == TokenType.IDENTIFIER && lookAhead(1).type() == TokenType.OPEN_PAREN) {
+            } else if (next.type() == TokenType.IDENTIFIER && lookAhead(1).type() == TokenType.LPAREN) {
                 methods.add(parseMethodDecl(visibility));
             } else {
                 throw new ParseException("Unexpected token in class body: " + peek());
             }
         }
 
-        expect(TokenType.CLOSE_BRACE);
+        expect(TokenType.RBRACE);
         return new ClassDecl(className, fields, methods);
     }
 
@@ -172,7 +172,15 @@ public class RecursiveDescentParser implements Parser {
 
         String varName = expect(TokenType.IDENTIFIER).lexeme();
         expect(TokenType.COLON);
-        String typeName = expect(TokenType.IDENTIFIER).lexeme();
+
+        // Allow a variable type to be either identifier or array
+        String typeName;
+        if (match(TokenType.LBRACKET)) {
+            typeName = "[" + expect(TokenType.IDENTIFIER).lexeme() + "]";
+            expect(TokenType.RBRACKET);
+        } else {
+            typeName = expect(TokenType.IDENTIFIER).lexeme();
+        }
 
         if (!match(TokenType.ASSIGN)) {
             throw new ParseException("Expected '=' to initialize variable '" + varName + "' after type declaration.");
@@ -185,18 +193,18 @@ public class RecursiveDescentParser implements Parser {
     // Parse a Method declaration
     private MethodDecl parseMethodDecl(Visibility visibility) {
         String methodName = expect(TokenType.IDENTIFIER).lexeme();
-        expect(TokenType.OPEN_PAREN);
+        expect(TokenType.LPAREN);
 
         List<MethodDecl.Parameter> parameters = new ArrayList<>();
-        while (Objects.requireNonNull(peek()).type() != TokenType.CLOSE_PAREN) {
+        while (Objects.requireNonNull(peek()).type() != TokenType.RPAREN) {
             String paramName = expect(TokenType.IDENTIFIER).lexeme();
             expect(TokenType.COLON);
             String paramType = expect(TokenType.IDENTIFIER).lexeme();
             parameters.add(new MethodDecl.Parameter(paramName, paramType));
-            if (Objects.requireNonNull(peek()).type() != TokenType.CLOSE_PAREN) expect(TokenType.COMMA);
+            if (Objects.requireNonNull(peek()).type() != TokenType.RPAREN) expect(TokenType.COMMA);
         }
 
-        expect(TokenType.CLOSE_PAREN);
+        expect(TokenType.RPAREN);
 
         // Optional return type
         String returnType = "void";
@@ -205,16 +213,16 @@ public class RecursiveDescentParser implements Parser {
             returnType = expect(TokenType.IDENTIFIER).lexeme();
         }
 
-        expect(TokenType.OPEN_BRACE);
+        expect(TokenType.LBRACE);
         List<Statement> body = parseStatements();
-        expect(TokenType.CLOSE_BRACE);
+        expect(TokenType.RBRACE);
         return new MethodDecl(methodName, parameters, returnType, body, visibility);
     }
 
     // Parse statements inside method body
     private List<Statement> parseStatements() {
         List<Statement> statements = new ArrayList<>();
-        while (peek() != null && Objects.requireNonNull(peek()).type() != TokenType.CLOSE_BRACE) {
+        while (peek() != null && Objects.requireNonNull(peek()).type() != TokenType.RBRACE) {
             statements.add(parseStatement());
         }
         return statements;
@@ -259,7 +267,16 @@ public class RecursiveDescentParser implements Parser {
         consume(TokenType.VAL); // consume 'val'
         String name = expect(TokenType.IDENTIFIER).lexeme();
         expect(TokenType.COLON);
-        String type = expect(TokenType.IDENTIFIER).lexeme();
+
+        String type;
+        if (match(TokenType.LBRACKET)) { // check for '['
+            String elementType = expect(TokenType.IDENTIFIER).lexeme();
+            expect(TokenType.RBRACKET); // expect ']'
+            type = "[" + elementType + "]";
+        } else {
+            type = expect(TokenType.IDENTIFIER).lexeme();
+        }
+
         expect(TokenType.ASSIGN);
         Expression initializer = parseExpression();
         return new ValStmt(name, type, initializer);
@@ -287,7 +304,7 @@ public class RecursiveDescentParser implements Parser {
 
         // Expect a closing parenthesis after the condition
         //consume(TokenType.CLOSE_PAREN);
-        consume(TokenType.OPEN_BRACE);
+        consume(TokenType.LBRACE);
 
         // Parse the "if" block (a sequence of statements)
         BlockStmt ifBlock = parseBlock();
@@ -295,7 +312,7 @@ public class RecursiveDescentParser implements Parser {
         // Check for an optional 'else' block
         BlockStmt elseBlock = null;
         if (match(TokenType.ELSE)) {
-            consume(TokenType.OPEN_BRACE);
+            consume(TokenType.LBRACE);
             elseBlock = parseBlock();
         }
 
@@ -337,7 +354,7 @@ public class RecursiveDescentParser implements Parser {
     }
 
     private Statement parseBlockOrStatement() {
-        if (match(TokenType.OPEN_BRACE)) {
+        if (match(TokenType.LBRACE)) {
             return parseBlock(); // assuming you have a parseBlock() method returning a BlockStmt
         } else {
             return parseStatement();
@@ -348,11 +365,11 @@ public class RecursiveDescentParser implements Parser {
         List<Statement> statements = new ArrayList<>();
 
         // We've already consumed the opening '{' before calling this method
-        while (!check(TokenType.CLOSE_BRACE) && !isAtEnd()) {
+        while (!check(TokenType.RBRACE) && !isAtEnd()) {
             statements.add(parseStatement());
         }
 
-        expect(TokenType.CLOSE_BRACE); // consume '}'
+        expect(TokenType.RBRACE); // consume '}'
         return new BlockStmt(statements);
     }
 
@@ -439,6 +456,19 @@ public class RecursiveDescentParser implements Parser {
     }
 
     private Expression parsePrimary() {
+
+        if (check(TokenType.LBRACKET)) {
+            consume(); // consume '['
+            List<Expression> elements = new ArrayList<>();
+            if (!check(TokenType.RBRACKET)) {
+                do {
+                    elements.add(parseExpression());
+                } while (match(TokenType.COMMA));
+            }
+            expect(TokenType.RBRACKET);
+            return new ArrayLiteralExpr(elements);
+        }
+
         Token token = expectAny(TokenType.IDENTIFIER, TokenType.INT_LITERAL,
                 TokenType.STRING_LITERAL, TokenType.FLOAT_LITERAL, TokenType.TRUE, TokenType.FALSE);
 
@@ -449,14 +479,14 @@ public class RecursiveDescentParser implements Parser {
                 expr = new VariableExpr(token.lexeme());
 
                 // Check for function/constructor call directly after identifier
-                if (match(TokenType.OPEN_PAREN)) {
+                if (match(TokenType.LPAREN)) {
                     List<Expression> args = new ArrayList<>();
-                    if (peek().type() != TokenType.CLOSE_PAREN) {
+                    if (peek().type() != TokenType.RPAREN) {
                         do {
                             args.add(parseExpression());
                         } while (match(TokenType.COMMA));
                     }
-                    expect(TokenType.CLOSE_PAREN);
+                    expect(TokenType.RPAREN);
                     expr = new CallExpr(expr, args);
                 }
                 break;
@@ -486,14 +516,14 @@ public class RecursiveDescentParser implements Parser {
                 String name = expect(TokenType.IDENTIFIER).lexeme();
                 Expression target = new GetExpr(expr, name);
 
-                if (match(TokenType.OPEN_PAREN)) {
+                if (match(TokenType.LPAREN)) {
                     List<Expression> args = new ArrayList<>();
-                    if (peek().type() != TokenType.CLOSE_PAREN) {
+                    if (peek().type() != TokenType.RPAREN) {
                         do {
                             args.add(parseExpression());
                         } while (match(TokenType.COMMA));
                     }
-                    expect(TokenType.CLOSE_PAREN);
+                    expect(TokenType.RPAREN);
                     expr = new CallExpr(target, args); // e.g., System.out.print(...)
                 } else {
                     expr = target; // field access: obj.field

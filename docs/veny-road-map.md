@@ -60,3 +60,12 @@
 - [ ] Performance optimization & benchmarks
 
 **Milestone:** Fast, expressive, modern language ready for any scale
+
+---
+
+This document is part of the Veny programming language project.
+
+© 2025 Stoyan Petkov  
+Website: [www.venylang.org](https://www.venylang.org)  
+Email: [admin@venylang.org](mailto:admin@venylang.org)  
+Licensed under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0)

@@ -30,10 +30,29 @@ public enum TokenType {
     PLUS, // +
     MINUS, // -
     STAR, // *
-    SLASH,
-    ASSIGN, EQ, NEQ,
-    LT, GT, LE, GE,
-    OPEN_PAREN, CLOSE_PAREN, OPEN_BRACE, CLOSE_BRACE,
+    SLASH, // /
+    MOD, // %
+    BANG, // !
+    AMPERSAND, // &
+    PIPE, // |
+    CARET, // ^
+    TILDE, // ~
+    QUESTION, // ?
+    ASSIGN, EQ, NEQ, // =, ==, !=
+    AND, OR, // &&, ||
+    INCREMENT, DECREMENT, // ++, --
+    BANG_EQ, // !=
+    LT, GT, LE, GE, // <, >, <=, >=
+    LT_LT, GT_GT, // <<, >>
+    PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, MOD_EQ,
+    ARROW, // ->
+    DOUBLE_ARROW, // =>
+    COLON_EQ, // :=
+    DOUBLE_COLON, // ::
+    DOUBLE_DOT, // ..
+    DOUBLE_PIPE, // ||
+    DOUBLE_AMPERSAND, // &&
+    LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,
     SEMICOLON, COLON, COMMA, DOT,
 
     // End of a file

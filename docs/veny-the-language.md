@@ -196,3 +196,12 @@ This guide covers the core of the language. The full specification includes addi
 As Veny evolves, so will this guide.
 
 *This document is a work in progress. Contributions, suggestions, and ideas are welcome.*
+
+---
+
+This document is part of the Veny programming language project.
+
+© 2025 Stoyan Petkov  
+Website: [www.venylang.org](https://www.venylang.org)  
+Email: [admin@venylang.org](mailto:admin@venylang.org)  
+Licensed under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0)

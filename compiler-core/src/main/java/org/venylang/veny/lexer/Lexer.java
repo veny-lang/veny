@@ -66,10 +66,12 @@ public class Lexer {
     private void scanToken() {
         char c = advance();
         switch (c) {
-            case '(': addToken(TokenType.OPEN_PAREN); break;
-            case ')': addToken(TokenType.CLOSE_PAREN); break;
-            case '{': addToken(TokenType.OPEN_BRACE); break;
-            case '}': addToken(TokenType.CLOSE_BRACE); break;
+            case '(': addToken(TokenType.LPAREN); break;
+            case ')': addToken(TokenType.RPAREN); break;
+            case '{': addToken(TokenType.LBRACE); break;
+            case '}': addToken(TokenType.RBRACE); break;
+            case '[': addToken(TokenType.LBRACKET); break;
+            case ']': addToken(TokenType.RBRACKET); break;
             case ',': addToken(TokenType.COMMA); break;
             case '.': addToken(TokenType.DOT); break;
             case ';': addToken(TokenType.SEMICOLON); break;
