@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Collection;
 
 /**
- * Represents a method declared within a class in Lumina.
+ * Represents a method declared within a class in Veny.
  * Acts as a symbol and a scope for parameters and local variables.
  */
 public class MethodSymbol extends Symbol implements Scope {

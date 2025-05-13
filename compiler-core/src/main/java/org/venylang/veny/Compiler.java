@@ -56,7 +56,7 @@ public class Compiler {
 
         System.out.println("Working directory: " + workingDir);
 
-        List<Path> lmFiles = collectLuminaFiles(workingDir);
+        List<Path> lmFiles = collectVenyFiles(workingDir);
         if (lmFiles.isEmpty()) {
             System.out.println("No .lm files found in: " + workingDir);
             return;
@@ -68,7 +68,7 @@ public class Compiler {
         }
     }
 
-    private List<Path> collectLuminaFiles(Path dir) {
+    private List<Path> collectVenyFiles(Path dir) {
         List<Path> lmFiles = new ArrayList<>();
         try {
             Files.walk(dir)
@@ -119,16 +119,16 @@ public class Compiler {
 
     private void printUsage() {
         System.out.println("""
-            Lumina Compiler (luminac)
+            Veny Compiler (venyc)
             --------------------------
             Usage:
-                luminac [<source-root-directory>]
+                venyc [<source-root-directory>]
 
             If no directory is given, current directory is used.
 
             Example:
-                luminac src/
-                luminac .
+                venyc src/
+                venyc .
             """);
     }
 }

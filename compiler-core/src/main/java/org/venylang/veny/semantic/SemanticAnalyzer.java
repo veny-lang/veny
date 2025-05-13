@@ -32,7 +32,7 @@ import org.venylang.veny.util.Visibility;
 import java.util.*;
 
 /**
- * Performs semantic analysis on Lumina AST nodes.
+ * Performs semantic analysis on Veny AST nodes.
  * Builds symbol tables, enforces scoping and type rules,
  * and collects semantic errors.
  */

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Represents a class declaration in Lumina.
+ * Represents a class declaration in Veny.
  * Stores its name, members (fields and methods), and its own scope.
  */
 public class ClassSymbol extends Symbol implements Scope {

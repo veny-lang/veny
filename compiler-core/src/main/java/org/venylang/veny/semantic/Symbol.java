@@ -20,7 +20,7 @@ package org.venylang.veny.semantic;
 import org.venylang.veny.util.Visibility;
 
 /**
- * Represents a named symbol in the Lumina language.
+ * Represents a named symbol in the Veny language.
  * This can be a variable, method, or class.
  */
 public abstract class Symbol {

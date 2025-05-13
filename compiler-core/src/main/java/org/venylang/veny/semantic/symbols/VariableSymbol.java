@@ -22,7 +22,7 @@ import org.venylang.veny.semantic.Type;
 import org.venylang.veny.util.Visibility;
 
 /**
- * Represents fields, local variables, method parameters in Lumina.
+ * Represents fields, local variables, method parameters in Veny source code.
  */
 public class VariableSymbol extends Symbol {
 

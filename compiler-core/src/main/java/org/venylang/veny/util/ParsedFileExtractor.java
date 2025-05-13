@@ -25,16 +25,16 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Utility class for parsing Lumina source files to extract package declarations and import statements.
+ * Utility class for parsing Veny source files to extract package declarations and import statements.
  * <p>
- * This class provides a static method to read a Lumina source file and return a {@link ParsedFile}
+ * This class provides a static method to read a Veny source file and return a {@link ParsedFile}
  * containing its package name and import statements.
  */
 public class ParsedFileExtractor {
 
-    private static final String LUMINA_EXTENSION = ".lm";
-    private static final String LUMINA_PACKAGE_PREFIX = "package ";
-    private static final String LUMINA_IMPORT_PREFIX = "import ";
+    private static final String VENY_EXTENSION = ".vn";
+    private static final String VENY_PACKAGE_PREFIX = "package ";
+    private static final String VENY_IMPORT_PREFIX = "import ";
 
     private Path path;
 
@@ -57,14 +57,14 @@ public class ParsedFileExtractor {
         for (String line : lines) {
             line = line.strip();
 
-            if (line.startsWith(LUMINA_PACKAGE_PREFIX)) {
+            if (line.startsWith(VENY_PACKAGE_PREFIX)) {
                 String[] parts = line.split("\\s+");
                 if (parts.length >= 2) {
                     packageName = parts[1];
                 }
             }
 
-            if (line.startsWith(LUMINA_IMPORT_PREFIX)) {
+            if (line.startsWith(VENY_IMPORT_PREFIX)) {
                 String[] parts = line.split("\\s+");
                 if (parts.length >= 2) {
                     imports.add(parts[1]);

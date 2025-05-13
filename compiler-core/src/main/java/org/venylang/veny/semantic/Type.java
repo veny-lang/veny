@@ -18,7 +18,7 @@
 package org.venylang.veny.semantic;
 
 /**
- * Abstract base class for all types in Lumina.
+ * Abstract base class for all types in Veny.
  */
 public abstract class Type {
 

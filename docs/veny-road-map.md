@@ -1,4 +1,4 @@
-# Lumina Language Roadmap (v0.4 → 1.0 and beyond)
+# Veny Language Roadmap (v0.4 → 1.0 and beyond)
 
 ---
 
@@ -12,15 +12,15 @@
 - [ ] Improve error recovery and error messages
 - [ ] Basic standard library (Strings, Lists, IO)
 - [ ] Java code generator (initial form)
-- [ ] Unit test framework for Lumina
-- [ ] CLI tool to compile & run Lumina code (`lumina <file>`)
+- [ ] Unit test framework for Veny
+- [ ] CLI tool to compile & run Veny code (`veny <file>`)
 
 **Milestone:** Can build OO apps and compile to Java for execution via Graal or JVM
 
 ---
 
 ## Phase 2: Usability & Developer Experience (v0.7 → v0.9)
-**Goal:** Make Lumina ergonomic and pleasant to develop in.
+**Goal:** Make Veny ergonomic and pleasant to develop in.
 
 ### Features:
 - [ ] REPL / scripting support

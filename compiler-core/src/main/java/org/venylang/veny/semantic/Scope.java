@@ -20,7 +20,7 @@ package org.venylang.veny.semantic;
 import java.util.Collection;
 
 /**
- * Represents a lexical scope in the Lumina language.
+ * Represents a lexical scope in the Veny language.
  * Scopes are used to define and resolve symbols (variables, methods, classes, etc.).
  */
 public interface Scope {
