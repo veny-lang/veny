@@ -27,8 +27,8 @@ class Person {
 ## 🛠 Project Structure
 
 ```
-lumina/
-├── src/main/java/me/stoyanp/lumina/
+compiler-core/
+├── src/main/java/org/venylang/veny/
 │   ├── lexer/
 │   │   ├── Lexer.java
 │   │   ├── Token.java
@@ -45,14 +45,12 @@ lumina/
 │   │   └── CodeGenerator.java
 │   ├── util/
 │   │   └── JavaCompilerInvoker.java
-│   └── CompilerMain.java
-├── src/test/java/lumina/
+│   └── Compiler.java
+├── src/test/java/org/venylang/veny
 │   ├── lexer/
 │   │   └── LexerTest.java
 │   ├── parser/
-│   │   └── ParserTest.java
-├── docs/
-│   └── language-spec.md
+│       └── ParserTest.java
 ├── pom.xml
 └── README.md
 ```
