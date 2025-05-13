@@ -67,9 +67,9 @@ compiler-core/
 
 ```bash
 mvn clean install> 🧠 **Future Feature: Implicit Typing in Variable Declarations**  
-> Lumina aims to support type inference in variable declarations where the type is obvious from the initializer, such as:  
+> Veny aims to support type inference in variable declarations where the type is obvious from the initializer, such as:  
 >  
-> ```lumina
+> ```veny
 > var person = new Person()
 > ```  
 >  
@@ -83,13 +83,13 @@ mvn clean install> 🧠 **Future Feature: Implicit Typing in Variable Declaratio
 mvn exec:java -Dexec.args="path/to/source.lm"
 ```
 
-> Note: `.lm` is the suggested file extension for Lumina source files.
+> Note: `.vn` is the suggested file extension for Veny source files.
 
 ## 🔥 Roadmap
 
 - [x] Lexer and Tokenizer
-- [ ] Basic Parser and AST generation
-- [ ] Semantic Analysis (type checking, scopes)
+- [x] Basic Parser and AST generation
+- [x] Semantic Analysis (type checking, scopes)
 - [ ] Java code generation
 - [ ] Native executable compilation with GraalVM
 - [ ] Basic standard library (strings, collections)
@@ -101,8 +101,12 @@ This project is in early stages!
 If you are excited about language design, compiler theory, or clean Java projects, feel free to join, suggest features, or fix bugs.
 
 ## 📄 License
+This document is part of the Veny programming language project.
 
-MIT License — free to use, free to build on.
+&copy; 2025 Stoyan Petkov.
+Website: [www.venylang.org](https://www.venylang.org)
+Email: [admin@venylang.org](mailto:admin@venylang.org)
+Licensed under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-# ✨ Welcome to Lumina ✨
+# ✨ Welcome to Veny ✨
 *"Programming should be powerful, but never painful."*
