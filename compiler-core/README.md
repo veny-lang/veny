@@ -12,7 +12,7 @@ Lumina programs are compiled to executable code, combining ease of writing with 
 - **Concurrent Future:** (Planned) Easy-to-use concurrency model inspired by Go.
 - **Tooling First:** Lexer, Parser, Semantic Analyzer, Code Generator — all from scratch.
 
-## 🚀 Example Code (Lumina)
+## 🚀 Example Code (Veny)
 
 ```lumina
 class Person {
