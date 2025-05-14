@@ -80,7 +80,7 @@ mvn clean install> 🧠 **Future Feature: Implicit Typing in Variable Declaratio
 ### To Run Compiler:
 
 ```bash
-mvn exec:java -Dexec.args="path/to/source.lm"
+mvn exec:java -Dexec.args="path/to/source.veny"
 ```
 
 > Note: `.vn` is the suggested file extension for Veny source files.

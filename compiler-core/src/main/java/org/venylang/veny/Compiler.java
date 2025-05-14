@@ -17,6 +17,7 @@
 
 package org.venylang.veny;
 
+import org.venylang.veny.codegen.JavaCodeGenerator;
 import org.venylang.veny.lexer.Lexer;
 import org.venylang.veny.lexer.Token;
 import org.venylang.veny.parser.RecursiveDescentParser;
@@ -36,14 +37,13 @@ import java.util.Optional;
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Compiler {
+    private Path workingDir;
 
     public static void main(String[] args) {
         new Compiler().run(args);
     }
 
     public void run(String[] args) {
-        Path workingDir;
-
         if (args.length == 0) {
             workingDir = Paths.get(".").toAbsolutePath().normalize();
         } else if (args.length == 1) {
@@ -56,14 +56,14 @@ public class Compiler {
 
         System.out.println("Working directory: " + workingDir);
 
-        List<Path> lmFiles = collectVenyFiles(workingDir);
-        if (lmFiles.isEmpty()) {
-            System.out.println("No .lm files found in: " + workingDir);
+        List<Path> venyFiles = collectVenyFiles(workingDir);
+        if (venyFiles.isEmpty()) {
+            System.out.println("No .veny files found in: " + workingDir);
             return;
         }
 
-        for (Path file : lmFiles) {
-            System.out.println("Compiling: " + file);
+        for (Path file : venyFiles) {
+            System.out.println("Compiling: " + workingDir.relativize(file));
             compileFile(file);
         }
     }
@@ -72,7 +72,7 @@ public class Compiler {
         List<Path> lmFiles = new ArrayList<>();
         try {
             Files.walk(dir)
-                .filter(p -> p.toString().endsWith(".lm"))
+                .filter(p -> p.toString().endsWith(".veny"))
                 .forEach(lmFiles::add);
         } catch (IOException e) {
             System.err.println("Error walking directory: " + dir);
@@ -84,37 +84,77 @@ public class Compiler {
         try {
             Optional<ParsedFile> result = ParsedFileExtractor.of(path).extract();
             result.ifPresentOrElse(parsedFile -> {
-                    System.out.println("Parsed: " + parsedFile);
+                if (!packageMatchesPath(path, parsedFile.packageName())) {
+                    Path relative = workingDir.relativize(parsedFile.path());
+                    String actualPath = (relative.getParent() != null)
+                            ? relative.getParent().toString()
+                            : "(working directory)";
+                    throw new CompilationException(relative + ": Package: `" + parsedFile.packageName()
+                            + "`, but file is in `" + actualPath + "`");
+                }
+                System.out.println("Parsed: " + parsedFile);
 
-                    try {
-                        String source = Files.readString(path);
-                        List<Token> tokens = new Lexer(source).scanTokens();
+                try {
+                    String source = Files.readString(path);
+                    List<Token> tokens = new Lexer(source).scanTokens();
 
-                        /*for (Token token : tokens) {
-                            System.out.println(token);
-                        }*/
+                    /*for (Token token : tokens) {
+                        System.out.println(token);
+                    }*/
 
-                        RecursiveDescentParser parser = new RecursiveDescentParser(tokens);
-                        Program program = parser.parse(); // AST root
-                        System.out.println("AST: " + program);
+                    RecursiveDescentParser parser = new RecursiveDescentParser(tokens);
+                    Program program = parser.parse(); // AST root
+                    System.out.println("AST: " + program);
 
-                        // SEMANTIC ANALYSIS
-                        SemanticAnalyzer analyzer = new SemanticAnalyzer();
-                        program.accept(analyzer); // type resolution, scoping, etc.
-                        System.out.println("Semantic analysis completed.");
+                    // SEMANTIC ANALYSIS
+                    SemanticAnalyzer analyzer = new SemanticAnalyzer();
+                    program.accept(analyzer); // type resolution, scoping, etc.
+                    System.out.println("Semantic analysis completed.");
 
-                        // Later steps: semantic analysis, etc.
+                    // Code generation
+                    JavaCodeGenerator generator = new JavaCodeGenerator();
+                    String javaCode = generator.visitProgram(program);
+                    System.out.println("Generated Java code:");
+                    System.out.println(javaCode);
 
-                    } catch (IOException ex) {
-                        System.err.println("Error reading file during compilation: " + path);
-                        ex.printStackTrace();
-                    }
-                },
-                () -> System.err.println("Missing package declaration in file: " + path));
+                } catch (IOException ex) {
+                    System.err.println("Error reading file during compilation: " + workingDir.relativize(path));
+                    ex.printStackTrace();
+                }
+            },
+            () -> System.err.println("Missing package declaration in file: " + workingDir.relativize(path)));
         } catch (IOException ex) {
-            System.err.println("Could not read file: " + path);
+            System.err.println("Could not read file: " + workingDir.relativize(path));
             ex.printStackTrace();
         }
+    }
+
+    private boolean packageMatchesPath(Path filePath, String packageName) {
+        // Example: filePath = src/app/core/engine.veny
+        //          packageName = app.core
+
+        // Normalize: ["app", "core"]
+        List<String> packageParts = List.of(packageName.split("\\."));
+
+        // Normalize the file path, extract the last N parts (before the file name)
+        Path parent = workingDir.relativize(filePath).getParent();
+        if (parent == null) return false;
+
+        List<String> pathParts = new ArrayList<>();
+        for (Path part : parent) {
+            pathParts.add(part.toString());
+        }
+
+        // Compare last N path parts with package parts
+        int offset = pathParts.size() - packageParts.size();
+        if (offset < 0) return false;
+
+        for (int i = 0; i < packageParts.size(); i++) {
+            if (!packageParts.get(i).equals(pathParts.get(offset + i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void printUsage() {

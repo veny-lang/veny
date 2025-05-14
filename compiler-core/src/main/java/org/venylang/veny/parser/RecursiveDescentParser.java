@@ -90,19 +90,21 @@ public class RecursiveDescentParser implements Parser {
 
     // Main parsing method for the Program
     public Program parse() {
-        // Optional: Parse 'package' declaration
-        String packageName = null;
-        if (match(TokenType.PACKAGE)) {
-            packageName = parseQualifiedName();
+        // 🔒 Require `package` declaration
+        if (!match(TokenType.PACKAGE)) {
+            Token token = peek();
+            throw new ParseException("[" + token.line() + "] Error: Expected `package` declaration at the top of the file.");
         }
+        String packageName = parseQualifiedName();
 
-        // Optional: Parse 'import' declarations
+        // 🟡 Optional: Parse `import` declarations
         List<String> imports = new ArrayList<>();
         while (match(TokenType.IMPORT)) {
             String importName = parseQualifiedName();
             imports.add(importName);
         }
 
+        // 🧱 Parse class declarations
         List<ClassDecl> classes = new ArrayList<>();
         while (peek() != null && peek().type() != TokenType.EOF) {
             classes.add(parseClassDecl());

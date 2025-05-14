@@ -43,7 +43,7 @@ public class ParsedFileExtractorTest {
             }
             """;
 
-        Path tempFile = Files.createTempFile("Person", ".lm");
+        Path tempFile = Files.createTempFile("Person", ".veny");
         Files.writeString(tempFile, content);
 
         Optional<ParsedFile> result = ParsedFileExtractor.of(tempFile).extract();
@@ -67,7 +67,7 @@ public class ParsedFileExtractorTest {
             }
             """;
 
-        Path tempFile = Files.createTempFile("NoPackage", ".lm");
+        Path tempFile = Files.createTempFile("NoPackage", ".veny");
         Files.writeString(tempFile, content);
 
         Optional<ParsedFile> result = ParsedFileExtractor.of(tempFile).extract();
@@ -86,7 +86,7 @@ public class ParsedFileExtractorTest {
             }
             """;
 
-        Path tempFile = Files.createTempFile("Animal", ".lm");
+        Path tempFile = Files.createTempFile("Animal", ".veny");
         Files.writeString(tempFile, content);
 
         Optional<ParsedFile> result = ParsedFileExtractor.of(tempFile).extract();
