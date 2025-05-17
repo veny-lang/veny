@@ -73,11 +73,19 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     public Void visitProgram(Program node) {
         enterScope(globalScope);
 
-        for (ClassDecl cls : node.classes()) {
-            cls.accept(this);
+        for (VenyFile file : node.files()) {
+            file.accept(this);
         }
 
         exitScope();
+        return null;
+    }
+
+    @Override
+    public Void visitVenyFile(VenyFile node) {
+        for (ClassDecl cls : node.classes()) {
+            cls.accept(this);
+        }
         return null;
     }
 

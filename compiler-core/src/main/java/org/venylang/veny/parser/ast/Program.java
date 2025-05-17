@@ -19,9 +19,38 @@ package org.venylang.veny.parser.ast;
 
 import java.util.List;
 
-public record Program(String packageName, List<String> imports, List<ClassDecl> classes) implements AstNode {
+/**
+ * Represents the full compilation unit for a Veny program.
+ *
+ * A program consists of one or more Veny source files (`VenyFile`), each
+ * with its own package declaration and class definitions. This structure
+ * allows multi-file, multi-package projects to be compiled as a single unit.
+ */
+public record Program(List<VenyFile> files) implements AstNode {
+
+  /**
+   * Creates a Program from a list of VenyFile instances.
+   */
+  public static Program of(List<VenyFile> files) {
+    return new Program(List.copyOf(files));
+  }
+
+  /**
+   * Creates a Program from one or more VenyFile instances (varargs).
+   */
+  public static Program of(VenyFile... files) {
+    return new Program(List.of(files));
+  }
+
   @Override
   public <R> R accept(AstVisitor<R> visitor) {
     return visitor.visitProgram(this);
+  }
+
+  @Override
+  public String toString() {
+    return "Program{" +
+            "files=" + files +
+            '}';
   }
 }

@@ -19,11 +19,8 @@ package org.venylang.veny.parser;
 
 import org.venylang.veny.lexer.Lexer;
 import org.venylang.veny.lexer.Token;
-import org.venylang.veny.parser.ast.ClassDecl;
-import org.venylang.veny.parser.ast.Expression;
-import org.venylang.veny.parser.ast.Program;
+import org.venylang.veny.parser.ast.*;
 import org.junit.jupiter.api.Test;
-import org.venylang.veny.parser.ast.VarDecl;
 import org.venylang.veny.parser.ast.expression.ArrayLiteralExpr;
 import org.venylang.veny.parser.ast.expression.LiteralExpr;
 
@@ -35,12 +32,12 @@ public class ParserTest {
 
     @Test
     void testParseProgram() {
-        String input = "class Person { var name: String = \"John\" }";
+        String input = "package test class Person { var name: String = \"John\" }";
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.scanTokens();
         RecursiveDescentParser parser = new RecursiveDescentParser(tokens);
 
-        Program program = parser.parse();
+        VenyFile program = parser.parse();
         assertNotNull(program);
         assertEquals(1, program.classes().size());
         assertEquals("Person", program.classes().get(0).name());
@@ -49,6 +46,8 @@ public class ParserTest {
     @Test
     void testVariableDeclarationRequiresInitializer() {
         String source = """
+            package org.venylang.veny.test
+            
             class Test {
                 var x: Int
             }
@@ -64,14 +63,14 @@ public class ParserTest {
 
     @Test
     public void testArrayVariableDeclaration() {
-        String source = "class Main { var x: [Int] = [1, 2, 3] }";
+        String source = "package test class Main { var x: [Int] = [1, 2, 3] }";
 
         Lexer lexer = new Lexer(source);
         List<Token> tokens = lexer.scanTokens();
 
         // Parse it
         Parser parser = new RecursiveDescentParser(tokens);
-        Program program = parser.parse();
+        VenyFile program = parser.parse();
 
         // Assertions
         assertNotNull(program);

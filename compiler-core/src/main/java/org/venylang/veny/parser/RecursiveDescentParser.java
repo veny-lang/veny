@@ -79,6 +79,13 @@ public class RecursiveDescentParser implements Parser {
         throw new ParseException("Expected " + type + " but found " + peek());
     }
 
+    private Token expect(TokenType type, String message) {
+        if (peek() != null && Objects.requireNonNull(peek()).type() == type) {
+            return consume();
+        }
+        throw new ParseException(message + " but found " + peek());
+    }
+
     private boolean check(TokenType type) {
         return !isAtEnd() && peek().type() == type;
     }
@@ -89,7 +96,7 @@ public class RecursiveDescentParser implements Parser {
 
 
     // Main parsing method for the Program
-    public Program parse() {
+    public VenyFile parse() {
         // 🔒 Require `package` declaration
         if (!match(TokenType.PACKAGE)) {
             Token token = peek();
@@ -110,16 +117,16 @@ public class RecursiveDescentParser implements Parser {
             classes.add(parseClassDecl());
         }
 
-        return new Program(packageName, imports, classes);
+        return new VenyFile(packageName, imports, classes);
     }
 
     private String parseQualifiedName() {
         StringBuilder name = new StringBuilder();
-        name.append(expect(TokenType.IDENTIFIER).lexeme());
+        name.append(expect(TokenType.IDENTIFIER, "Expected identifier in qualified name").lexeme());
 
         while (match(TokenType.DOT)) {
             name.append('.');
-            name.append(expect(TokenType.IDENTIFIER).lexeme());
+            name.append(expect(TokenType.IDENTIFIER, "Expected identifier after `.`").lexeme());
         }
 
         return name.toString();

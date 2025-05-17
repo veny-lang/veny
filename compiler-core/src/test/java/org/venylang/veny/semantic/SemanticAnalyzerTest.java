@@ -22,6 +22,7 @@ import org.venylang.veny.lexer.Token;
 import org.venylang.veny.parser.RecursiveDescentParser;
 import org.venylang.veny.parser.ast.Program;
 import org.junit.jupiter.api.Test;
+import org.venylang.veny.parser.ast.VenyFile;
 
 import java.util.List;
 
@@ -33,13 +34,15 @@ public class SemanticAnalyzerTest {
         Lexer lexer = new Lexer(source);
         List<Token> tokens = lexer.scanTokens();
         RecursiveDescentParser parser = new RecursiveDescentParser(tokens);
-        Program program = parser.parse();
-        new SemanticAnalyzer().visitProgram(program);
+        VenyFile parsedUnit = parser.parse();
+        new SemanticAnalyzer().visitProgram(Program.of(parsedUnit));
     }
 
     @Test
     void duplicateClassNameShouldFail() {
         String source = """
+            package org.venylang.veny.test
+            
             class Foo {}
             class Foo {}
         """;
@@ -49,7 +52,9 @@ public class SemanticAnalyzerTest {
     @Test
     void duplicateVariableInSameScopeShouldFail() {
         String source = """
-            class Test {
+            package org.venylang.veny.test
+            
+            class Test {                
                 var x: Int = 1
                 var x: Int = 2
             }
@@ -60,6 +65,8 @@ public class SemanticAnalyzerTest {
     @Test
     void variableShadowingInInnerScopeShouldPass() {
         String source = """
+            package org.venylang.veny.test
+            
             class Test {
                 var x: Int = 1
                 shadow(): void {
@@ -73,6 +80,8 @@ public class SemanticAnalyzerTest {
     @Test
     void uniqueClassNamesShouldPass() {
         String source = """
+            package org.venylang.veny.test
+            
             class Alpha {}
             class Beta {}
         """;
@@ -83,6 +92,8 @@ public class SemanticAnalyzerTest {
     void duplicateMethodInClassShouldPassTemporarily() {
         // Overloading isn't handled yet, so allow for now unless restricted
         String source = """
+            package org.venylang.veny.test
+            
             class Service {
                 foo(): void {}
                 foo(): void {}

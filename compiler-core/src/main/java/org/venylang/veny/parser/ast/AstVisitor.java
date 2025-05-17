@@ -22,6 +22,7 @@ import org.venylang.veny.parser.ast.statement.*;
 
 public interface AstVisitor<R> {
     R visitProgram(Program node);
+    R visitVenyFile(VenyFile node);
     R visitClassDecl(ClassDecl node);
     R visitVarDecl(VarDecl node);
     R visitMethodDecl(MethodDecl node);

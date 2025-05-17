@@ -17,11 +17,8 @@
 
 package org.venylang.veny.parser;
 
-import org.venylang.veny.lexer.Token;
-import org.venylang.veny.parser.ast.Program;
-
-import java.util.List;
+import org.venylang.veny.parser.ast.VenyFile;
 
 public interface Parser {
-    Program parse();
+    VenyFile parse();
 }

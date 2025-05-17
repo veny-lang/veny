@@ -45,24 +45,67 @@ import java.time.LocalDate;
  * @see AstVisitor
  * @see CodeBuilder
  */
-public class JavaCodeGenerator implements AstVisitor<String> {
+public class JavaCodeGenerator implements AstVisitor<Void> {
     private final CodeBuilder builder = new CodeBuilder();
 
-    @Override
-    public String visitProgram(Program node) {
-        builder.appendRawLine(generateFileHeader("Veny", LocalDate.now().toString()))
-                .appendLine("");
+    private JavaCodeGenerator() {}
 
-        for (ClassDecl decl : node.classes()) {
-            decl.accept(this);
-            builder.appendLine(""); // Separate declarations
-        }
+    /**
+     * Factory method to generate code from a given Program node.
+     *
+     * @param program the root AST node
+     * @return an instance of JavaCodeGenerator with code ready to fetch
+     */
+    public static JavaCodeGenerator of(Program program) {
+        JavaCodeGenerator generator = new JavaCodeGenerator();
+        program.accept(generator);
+        return generator;
+    }
 
+    /**
+     * Returns the generated Java source code as a string.
+     */
+    public String getCode() {
         return builder.build();
     }
 
     @Override
-    public String visitClassDecl(ClassDecl node) {
+    public Void visitProgram(Program node) {
+        builder.appendRawLine(generateFileHeader("Veny", LocalDate.now().toString()))
+                .appendRawLine(""); // blank line after header
+
+        for (VenyFile file : node.files()) {
+            file.accept(this);
+            builder.appendRawLine(""); // separate files
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitVenyFile(VenyFile node) {
+        if (node.packageName() != null && !node.packageName().isEmpty()) {
+            builder.appendLine("package " + node.packageName() + ";");
+            builder.appendRawLine(""); // blank line after package
+        }
+
+        for (String imp : node.imports()) {
+            builder.appendLine("import " + imp + ";");
+        }
+
+        if (!node.imports().isEmpty()) {
+            builder.appendRawLine(""); // blank line after imports
+        }
+
+        for (ClassDecl cls : node.classes()) {
+            cls.accept(this);
+            builder.appendRawLine(""); // separate classes
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visitClassDecl(ClassDecl node) {
         builder.appendLine("public class " + node.name() + " {")
                 .indent();
 
@@ -70,8 +113,47 @@ public class JavaCodeGenerator implements AstVisitor<String> {
             field.accept(this);
         }
 
+        if (!node.fields().isEmpty() && !node.methods().isEmpty()) {
+            builder.appendRawLine(""); // separate fields from methods
+        }
+
         for (MethodDecl method : node.methods()) {
             method.accept(this);
+            builder.appendRawLine(""); // separate methods
+        }
+
+        builder.unindent()
+                .appendLine("}");
+
+        return null;
+    }
+
+    @Override
+    public Void visitVarDecl(VarDecl node) {
+        String visibility = node.visibility().toString().toLowerCase();
+        String line = visibility + " " + node.typeName() + " " + node.name() + ";";
+        builder.appendLine(line);
+        return null;
+    }
+
+    @Override
+    public Void visitMethodDecl(MethodDecl node) {
+        String visibility = node.visibility().toString().toLowerCase();
+        StringBuilder params = new StringBuilder();
+
+        for (int i = 0; i < node.parameters().size(); i++) {
+            var param = node.parameters().get(i);
+            params.append(param.type()).append(" ").append(param.name());
+            if (i < node.parameters().size() - 1) {
+                params.append(", ");
+            }
+        }
+
+        builder.appendLine(visibility + " " + node.returnType() + " " + node.name() + "(" + params + ") {")
+                .indent();
+
+        for (Statement stmt : node.body()) {
+            stmt.accept(this);
         }
 
         builder.unindent().appendLine("}");
@@ -79,108 +161,98 @@ public class JavaCodeGenerator implements AstVisitor<String> {
     }
 
     @Override
-    public String visitVarDecl(VarDecl node) {
-        return "";
+    public Void visitBlockStmt(BlockStmt node) {
+        return null;
     }
 
     @Override
-    public String visitMethodDecl(MethodDecl node) {
-        return "";
+    public Void visitIfStmt(IfStmt node) {
+        return null;
     }
 
     @Override
-    public String visitBlockStmt(BlockStmt node) {
-        return "";
+    public Void visitWhileStmt(WhileStmt node) {
+        return null;
     }
 
     @Override
-    public String visitIfStmt(IfStmt node) {
-        return "";
+    public Void visitForStmt(ForStmt node) {
+        return null;
     }
 
     @Override
-    public String visitWhileStmt(WhileStmt node) {
-        return "";
+    public Void visitReturnStmt(ReturnStmt node) {
+        return null;
     }
 
     @Override
-    public String visitForStmt(ForStmt node) {
-        return "";
+    public Void visitExprStmt(ExprStmt node) {
+        return null;
     }
 
     @Override
-    public String visitReturnStmt(ReturnStmt node) {
-        return "";
+    public Void visitVarStmt(VarStmt node) {
+        return null;
     }
 
     @Override
-    public String visitExprStmt(ExprStmt node) {
-        return "";
+    public Void visitValStmt(ValStmt node) {
+        return null;
     }
 
     @Override
-    public String visitVarStmt(VarStmt node) {
-        return "";
+    public Void visitBinaryExpr(BinaryExpr node) {
+        return null;
     }
 
     @Override
-    public String visitValStmt(ValStmt node) {
-        return "";
+    public Void visitUnaryExpr(UnaryExpr node) {
+        return null;
     }
 
     @Override
-    public String visitBinaryExpr(BinaryExpr node) {
-        return "";
+    public Void visitLiteralExpr(LiteralExpr node) {
+        return null;
     }
 
     @Override
-    public String visitUnaryExpr(UnaryExpr node) {
-        return "";
+    public Void visitVariableExpr(VariableExpr node) {
+        return null;
     }
 
     @Override
-    public String visitLiteralExpr(LiteralExpr node) {
-        return "";
+    public Void visitAssignExpr(AssignExpr node) {
+        return null;
     }
 
     @Override
-    public String visitVariableExpr(VariableExpr node) {
-        return "";
+    public Void visitCallExpr(CallExpr node) {
+        return null;
     }
 
     @Override
-    public String visitAssignExpr(AssignExpr node) {
-        return "";
+    public Void visitNewExpr(NewExpr node) {
+        return null;
     }
 
     @Override
-    public String visitCallExpr(CallExpr node) {
-        return "";
+    public Void visitGetExpr(GetExpr node) {
+        return null;
     }
 
     @Override
-    public String visitNewExpr(NewExpr node) {
-        return "";
+    public Void visitSetExpr(SetExpr node) {
+        return null;
     }
 
     @Override
-    public String visitGetExpr(GetExpr node) {
-        return "";
+    public Void visitBreakStmt(BreakStmt breakStmt) {
+        return null;
     }
 
     @Override
-    public String visitSetExpr(SetExpr node) {
-        return "";
-    }
-
-    @Override
-    public String visitBreakStmt(BreakStmt breakStmt) {
-        return "";
-    }
-
-    @Override
-    public String visitContinueStmt(ContinueStmt continueStmt) {
-        return "";
+    public Void visitContinueStmt(ContinueStmt continueStmt) {
+        return null;
     }
 
     /**

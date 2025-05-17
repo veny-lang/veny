@@ -22,6 +22,7 @@ import org.venylang.veny.lexer.Lexer;
 import org.venylang.veny.lexer.Token;
 import org.venylang.veny.parser.RecursiveDescentParser;
 import org.venylang.veny.parser.ast.Program;
+import org.venylang.veny.parser.ast.VenyFile;
 import org.venylang.veny.semantic.SemanticAnalyzer;
 import org.venylang.veny.util.ParsedFile;
 import org.venylang.veny.util.ParsedFileExtractor;
@@ -62,71 +63,82 @@ public class Compiler {
             return;
         }
 
-        for (Path file : venyFiles) {
+        compile(venyFiles);
+        /*for (Path file : venyFiles) {
             System.out.println("Compiling: " + workingDir.relativize(file));
             compileFile(file);
-        }
+        }*/
     }
 
     private List<Path> collectVenyFiles(Path dir) {
-        List<Path> lmFiles = new ArrayList<>();
+        List<Path> venyFiles = new ArrayList<>();
         try {
             Files.walk(dir)
                 .filter(p -> p.toString().endsWith(".veny"))
-                .forEach(lmFiles::add);
+                .forEach(venyFiles::add);
         } catch (IOException e) {
             System.err.println("Error walking directory: " + dir);
         }
-        return lmFiles;
+        return venyFiles;
     }
 
-    private void compileFile(Path path) {
-        try {
-            Optional<ParsedFile> result = ParsedFileExtractor.of(path).extract();
-            result.ifPresentOrElse(parsedFile -> {
-                if (!packageMatchesPath(path, parsedFile.packageName())) {
-                    Path relative = workingDir.relativize(parsedFile.path());
-                    String actualPath = (relative.getParent() != null)
-                            ? relative.getParent().toString()
-                            : "(working directory)";
-                    throw new CompilationException(relative + ": Package: `" + parsedFile.packageName()
-                            + "`, but file is in `" + actualPath + "`");
-                }
-                System.out.println("Parsed: " + parsedFile);
+    private void compile(List<Path> filesToCompile) {
+        Program program = new Program(parseVenyFiles(filesToCompile));
+        System.out.println("AST: " + program);
 
-                try {
-                    String source = Files.readString(path);
-                    List<Token> tokens = new Lexer(source).scanTokens();
+        // SEMANTIC ANALYSIS
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        program.accept(analyzer); // type resolution, scoping, etc.
+        System.out.println("Semantic analysis completed.");
 
-                    /*for (Token token : tokens) {
-                        System.out.println(token);
-                    }*/
+        // Code generation
+        String javaCode = JavaCodeGenerator.of(program).getCode();
+        System.out.println("Generated Java code:");
+        System.out.println(javaCode);
+    }        //String javaCode = generator.visitProgram(program);
 
-                    RecursiveDescentParser parser = new RecursiveDescentParser(tokens);
-                    Program program = parser.parse(); // AST root
-                    System.out.println("AST: " + program);
 
-                    // SEMANTIC ANALYSIS
-                    SemanticAnalyzer analyzer = new SemanticAnalyzer();
-                    program.accept(analyzer); // type resolution, scoping, etc.
-                    System.out.println("Semantic analysis completed.");
+    /**
+     * Parses the given list of Veny source files into a list of AST file nodes.
+     *
+     * @param filesToCompile paths to Veny source files
+     * @return a list of parsed VenyFile AST nodes
+     */
+    public List<VenyFile> parseVenyFiles(List<Path> filesToCompile) {
+        List<VenyFile> allFiles = new ArrayList<>();
 
-                    // Code generation
-                    JavaCodeGenerator generator = new JavaCodeGenerator();
-                    String javaCode = generator.visitProgram(program);
-                    System.out.println("Generated Java code:");
-                    System.out.println(javaCode);
+        filesToCompile.forEach(path -> {
+            try {
+                Optional<ParsedFile> result = ParsedFileExtractor.of(path).extract();
+                result.ifPresentOrElse(parsedFile -> {
+                    if (!packageMatchesPath(path, parsedFile.packageName())) {
+                        Path relative = workingDir.relativize(parsedFile.path());
+                        String actualPath = (relative.getParent() != null)
+                                ? relative.getParent().toString()
+                                : "(working directory)";
+                        throw new CompilationException(relative + ": Package: `" + parsedFile.packageName()
+                                + "`, but file is in `" + actualPath + "`");
+                    }
+                    System.out.println("Parsed: " + parsedFile);
 
-                } catch (IOException ex) {
-                    System.err.println("Error reading file during compilation: " + workingDir.relativize(path));
-                    ex.printStackTrace();
-                }
-            },
-            () -> System.err.println("Missing package declaration in file: " + workingDir.relativize(path)));
-        } catch (IOException ex) {
-            System.err.println("Could not read file: " + workingDir.relativize(path));
-            ex.printStackTrace();
-        }
+                    try {
+                        String source = Files.readString(path);
+                        List<Token> tokens = new Lexer(source).scanTokens();
+                        VenyFile venyFile = new RecursiveDescentParser(tokens).parse();
+                        allFiles.add(venyFile);
+                    } catch (IOException ex) {
+                        System.err.println("Error reading file during compilation: " + workingDir.relativize(path));
+                        ex.printStackTrace();
+                    }
+                },
+                () -> System.err.println("Missing package declaration in file: " + workingDir.relativize(path)));
+            } catch (IOException e) {
+                System.err.println("Failed to compile: " + path);
+                e.printStackTrace();
+            }
+        });
+
+        return allFiles;
     }
 
     private boolean packageMatchesPath(Path filePath, String packageName) {
