@@ -20,16 +20,50 @@ package org.venylang.veny.parser.ast.expression;
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
+import java.util.Objects;
+
+/**
+ * Represents a variable reference expression in the AST.
+ *
+ * <p>Example:
+ * <pre>{@code
+ *   x
+ *   myVariable
+ * }</pre>
+ */
 public record VariableExpr(String name) implements Expression {
 
-    @Override
-    public <R> R accept(AstVisitor<R> visitor) {
-        return null;
+    /**
+     * Creates a new variable expression.
+     *
+     * @param name The name of the variable.
+     * @return a new VariableExpr instance representing the variable.
+     * @throws NullPointerException if name is null.
+     */
+    public static VariableExpr of(String name) {
+        Objects.requireNonNull(name, "name must not be null");
+        return new VariableExpr(name);
     }
 
+    /**
+     * Accepts a visitor, dispatching to the visitor's method for variable expressions.
+     *
+     * @param visitor The visitor to process this AST node.
+     * @param <R>     The return type of the visitor.
+     * @return The result of the visitor's processing.
+     */
+    @Override
+    public <R> R accept(AstVisitor<R> visitor) {
+        return visitor.visitVariableExpr(this);
+    }
+
+    /**
+     * Returns a string representation of this variable expression.
+     *
+     * @return a string in the format "VariableExpr(name)"
+     */
     @Override
     public String toString() {
         return "VariableExpr(" + name + ")";
     }
-
 }

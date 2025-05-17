@@ -20,44 +20,51 @@ package org.venylang.veny.parser.ast.expression;
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
+import java.util.Objects;
+
+/**
+ * Represents a field assignment expression in the AST.
+ *
+ * <p>Example:
+ * <pre>{@code
+ *   user.age = 30
+ * }</pre>
+ */
 public record SetExpr(Expression target, String field, Expression value) implements Expression {
 
     /**
-     * Constructs a field assignment expression (e.g., obj.field = value).
+     * Creates a new field assignment expression (e.g., obj.field = value).
      *
      * @param target The object whose field is being assigned (e.g., VariableExpr("user")).
      * @param field  The field name (e.g., "age").
      * @param value  The value to assign to the field.
+     * @return a new SetExpr instance representing the assignment.
+     * @throws NullPointerException if target, field, or value is null.
      */
-    public SetExpr {
+    public static SetExpr of(Expression target, String field, Expression value) {
+        Objects.requireNonNull(target, "target must not be null");
+        Objects.requireNonNull(field, "field must not be null");
+        Objects.requireNonNull(value, "value must not be null");
+        return new SetExpr(target, field, value);
     }
 
     /**
-     * @return the expression representing the object (left-hand side before the dot).
+     * Accepts a visitor, dispatching to the visitor's method for set expressions.
+     *
+     * @param visitor The visitor to process this AST node.
+     * @param <R>     The return type of the visitor.
+     * @return The result of the visitor's processing.
      */
-    @Override public Expression target() {
-        return target;
-    }
-
-    /**
-     * @return the field name being assigned.
-     */
-    @Override public String field() {
-        return field;
-    }
-
-    /**
-     * @return the value being assigned to the field.
-     */
-    @Override public Expression value() {
-        return value;
-    }
-
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
         return visitor.visitSetExpr(this);
     }
 
+    /**
+     * Returns a string representation of this field assignment expression.
+     *
+     * @return a string in the format "target.field = value"
+     */
     @Override
     public String toString() {
         return target + "." + field + " = " + value;

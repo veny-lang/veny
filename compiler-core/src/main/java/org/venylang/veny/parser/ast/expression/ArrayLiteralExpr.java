@@ -22,24 +22,50 @@ import java.util.List;
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
-public class ArrayLiteralExpr implements Expression {
-    private final List<Expression> elements;
+import java.util.List;
 
-    public ArrayLiteralExpr(List<Expression> elements) {
-        this.elements = elements;
+/**
+ * Represents an array literal expression in the abstract syntax tree (AST).
+ * <p>
+ * An array literal is a fixed-size collection of values defined directly in the code,
+ * such as <code>[1, 2, 3]</code>. This expression holds a list of sub-expressions that
+ * define the array's elements.
+ *
+ * @param elements The list of expressions representing the elements of the array.
+ */
+public record ArrayLiteralExpr(List<Expression> elements) implements Expression {
+
+    /**
+     * Creates a new {@code ArrayLiteralExpr} with the given elements.
+     *
+     * @param elements A list of expressions representing the elements of the array.
+     * @return A new {@code ArrayLiteralExpr} instance.
+     */
+    public static ArrayLiteralExpr of(List<Expression> elements) {
+        return new ArrayLiteralExpr(elements);
     }
 
-    public List<Expression> elements() {
-        return elements;
-    }
-
+    /**
+     * Accepts a visitor that performs an operation on this array literal expression.
+     *
+     * @param visitor The AST visitor.
+     * @param <R>     The return type of the visitor.
+     * @return The result of visiting this node.
+     */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return null;
+        return visitor.visitArrayLiteralExpr(this);
     }
 
+    /**
+     * Returns a string representation of the array literal expression,
+     * including its elements.
+     *
+     * @return A string showing the array elements in source-like format.
+     */
     @Override
     public String toString() {
-        return "ArrayLiteralExp{}";
+        return "[" + elements.stream().map(Object::toString).reduce((a, b) -> a + ", " + b).orElse("") + "]";
     }
 }
+

@@ -17,4 +17,12 @@
 
 package org.venylang.veny.parser.ast;
 
+/**
+ * Represents an expression node in the Veny language abstract syntax tree.
+ * <p>
+ * This may include literals (e.g., numbers, strings), variable accesses,
+ * binary operations, method calls, or more complex constructs.
+ * All expressions are also {@link AstNode}s and participate in tree traversal,
+ * analysis, and code generation.
+ */
 public interface Expression extends AstNode {}

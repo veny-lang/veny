@@ -42,27 +42,9 @@ public record AssignExpr(String name, Expression value) implements Expression {
      * @param name  The variable name being assigned to.
      * @param value The expression representing the assigned value.
      */
-    public AssignExpr {
+    public static AssignExpr of(String name, Expression value) {
+        return new AssignExpr(name, value);
     }
-
-    /**
-     * Gets the variable name.
-     *
-     * @return the name of the variable.
-     */
-    @Override public String name() {
-        return name;
-    }
-
-    /**
-     * Gets the assigned value expression.
-     *
-     * @return the expression on the right-hand side of the assignment.
-     */
-    @Override public Expression value() {
-        return value;
-    }
-
 
     @Override
     public <R> R accept(AstVisitor<R> visitor) {

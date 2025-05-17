@@ -255,6 +255,11 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitArrayLiteralExpr(ArrayLiteralExpr arrayLiteralExpr) {
+        return null;
+    }
+
     /**
      * Returns a standard auto-generated file header.
      *

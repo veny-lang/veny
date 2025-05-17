@@ -20,13 +20,41 @@ package org.venylang.veny.parser.ast.expression;
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
+import java.util.Objects;
+
+/**
+ * Represents a literal value in the AST, such as a number, string, or boolean.
+ */
 public record LiteralExpr(Object value) implements Expression {
 
+  /**
+   * Creates a new literal expression with the given value.
+   *
+   * @param value The literal value, e.g., an Integer, String, Boolean, etc.
+   * @return a new LiteralExpr instance wrapping the value.
+   */
+  public static LiteralExpr of(Object value) {
+    Objects.requireNonNull(value, "value must not be null");
+    return new LiteralExpr(value);
+  }
+
+  /**
+   * Accepts a visitor, dispatching to the visitor's method for literal expressions.
+   *
+   * @param visitor The visitor to process this AST node.
+   * @param <R>     The return type of the visitor.
+   * @return The result of the visitor's processing.
+   */
   @Override
   public <R> R accept(AstVisitor<R> visitor) {
     return visitor.visitLiteralExpr(this);
   }
 
+  /**
+   * Returns a string representation of this literal expression.
+   *
+   * @return a string in the format "LiteralExpr(value)"
+   */
   @Override
   public String toString() {
     return "LiteralExpr(" + value + ")";

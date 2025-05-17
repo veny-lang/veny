@@ -395,7 +395,7 @@ public class RecursiveDescentParser implements Parser {
             Expression value = parseAssignment();
 
             if (expr instanceof VariableExpr) {
-                return new AssignExpr(((VariableExpr) expr).name(), value);
+                return AssignExpr.of(((VariableExpr) expr).name(), value);
             } else if (expr instanceof GetExpr) {
                 return new SetExpr(((GetExpr) expr).target(), ((GetExpr) expr).field(), value);
             }

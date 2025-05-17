@@ -238,6 +238,11 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitArrayLiteralExpr(ArrayLiteralExpr arrayLiteralExpr) {
+        return null;
+    }
+
     // === Expressions ===
 
     @Override

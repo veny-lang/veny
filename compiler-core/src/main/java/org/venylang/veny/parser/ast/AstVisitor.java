@@ -49,4 +49,5 @@ public interface AstVisitor<R> {
     R visitSetExpr(SetExpr node);
     R visitBreakStmt(BreakStmt breakStmt);
     R visitContinueStmt(ContinueStmt continueStmt);
+    R visitArrayLiteralExpr(ArrayLiteralExpr arrayLiteralExpr);
 }

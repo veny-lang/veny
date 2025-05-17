@@ -23,50 +23,48 @@ import org.venylang.veny.parser.ast.Expression;
 /**
  * Represents accessing a field or property from an object in the AST.
  *
- * Examples:
- * <pre>
+ * <p>Examples:
+ * <pre>{@code
  *   this.name        // get field "name" from 'this'
  *   user.age         // get field "age" from variable 'user'
  *   config.debug     // get field "debug" from variable 'config'
- * </pre>
+ * }</pre>
  *
- * This is a read operation, not an assignment.
+ * <p>This is a read operation, not an assignment.
  */
-public class GetExpr implements Expression {
-
-    private final Expression target;
-    private final String field;
+public record GetExpr(Expression target, String field) implements Expression {
 
     /**
-     * Constructs a field access expression (e.g., obj.field).
+     * Creates a new field access expression (e.g., obj.field).
      *
      * @param target The expression evaluating to the object (e.g., VariableExpr("user")).
      * @param field  The field name being accessed (e.g., "age").
+     * @return a new GetExpr instance representing the field access.
+     * @throws NullPointerException if target or field is null.
      */
-    public GetExpr(Expression target, String field) {
-        this.target = target;
-        this.field = field;
+    public static GetExpr of(Expression target, String field) {
+        java.util.Objects.requireNonNull(target, "target must not be null");
+        java.util.Objects.requireNonNull(field, "field must not be null");
+        return new GetExpr(target, field);
     }
 
     /**
-     * @return the expression representing the object.
+     * Accepts a visitor, dispatching to the visitor's method for this expression type.
+     *
+     * @param visitor The visitor to process this AST node.
+     * @param <R>     The return type of the visitor.
+     * @return The result of the visitor's processing.
      */
-    public Expression target() {
-        return target;
-    }
-
-    /**
-     * @return the name of the field being accessed.
-     */
-    public String field() {
-        return field;
-    }
-
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
         return visitor.visitGetExpr(this);
     }
 
+    /**
+     * Returns a string representation of this field access expression.
+     *
+     * @return a string in the format "target.field"
+     */
     @Override
     public String toString() {
         return target + "." + field;
