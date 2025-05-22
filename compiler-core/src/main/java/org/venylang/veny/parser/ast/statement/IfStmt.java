@@ -21,15 +21,58 @@ import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 import org.venylang.veny.parser.ast.Statement;
 
+import java.util.Objects;
+
 /**
- * @param elseBranch  may be null */
+ * Represents an if-else statement in the AST.
+ *
+ * <p>Examples:
+ * <pre>{@code
+ * if (x > 0) {
+ *     print("Positive");
+ * }
+ *
+ * if (x > 0) {
+ *     print("Positive");
+ * } else {
+ *     print("Non-positive");
+ * }
+ * }</pre>
+ */
 public record IfStmt(Expression condition, Statement thenBranch, Statement elseBranch) implements Statement {
 
+    /**
+     * Creates a new if-else statement.
+     *
+     * @param condition   The condition to evaluate.
+     * @param thenBranch  The statement to execute if the condition is true.
+     * @param elseBranch  The statement to execute if the condition is false (nullable).
+     * @return a new IfStmt instance.
+     * @throws NullPointerException if condition or thenBranch is null.
+     */
+    public static IfStmt of(Expression condition, Statement thenBranch, Statement elseBranch) {
+        Objects.requireNonNull(condition, "condition must not be null");
+        Objects.requireNonNull(thenBranch, "thenBranch must not be null");
+        return new IfStmt(condition, thenBranch, elseBranch);
+    }
+
+    /**
+     * Accepts a visitor, dispatching to the visitor's method for if-else statements.
+     *
+     * @param visitor The visitor to process this AST node.
+     * @param <R>     The return type of the visitor.
+     * @return The result of the visitor's processing.
+     */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
         return visitor.visitIfStmt(this);
     }
 
+    /**
+     * Returns a string representation of this if-else statement.
+     *
+     * @return a formatted string like {@code if (condition) thenBranch [else elseBranch]}
+     */
     @Override
     public String toString() {
         return "if (" + condition + ") " + thenBranch +

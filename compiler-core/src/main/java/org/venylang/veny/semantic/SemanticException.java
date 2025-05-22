@@ -17,14 +17,33 @@
 
 package org.venylang.veny.semantic;
 
-public class SemanticException extends RuntimeException{
+/**
+ * Exception thrown to indicate a semantic error during analysis of the Veny program.
+ * <p>
+ * This exception is typically used to report issues such as type mismatches,
+ * use of undeclared variables, or invalid operations that are semantically incorrect
+ * even though they are syntactically valid.
+ * </p>
+ */
+public class SemanticException extends RuntimeException {
 
+    /**
+     * Constructs a new {@code SemanticException} with the specified detail message.
+     *
+     * @param message the detail message explaining the semantic error
+     */
     public SemanticException(String message) {
         super(message);
     }
 
+    /**
+     * Constructs a new {@code SemanticException} with the specified detail message
+     * and cause.
+     *
+     * @param message the detail message explaining the semantic error
+     * @param cause   the cause of the exception (can be {@code null})
+     */
     public SemanticException(String message, Throwable cause) {
         super(message, cause);
     }
-
 }

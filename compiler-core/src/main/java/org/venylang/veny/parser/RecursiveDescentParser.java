@@ -29,10 +29,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * A recursive descent parser for the Veny language.
+ * Parses a list of tokens into an abstract syntax tree (AST) represented by {@link VenyFile}.
+ */
 public class RecursiveDescentParser implements Parser {
     private final List<Token> tokens;
     private int current = 0;
 
+    /**
+     * Constructs a new parser with the provided list of tokens.
+     *
+     * @param tokens the token stream to parse
+     */
     public RecursiveDescentParser(List<Token> tokens) {
         this.tokens = tokens;
     }
@@ -95,7 +104,12 @@ public class RecursiveDescentParser implements Parser {
     }
 
 
-    // Main parsing method for the Program
+    /**
+     * Parses the tokens and returns the root AST node representing the Veny source file.
+     *
+     * @return the parsed {@link VenyFile}
+     * @throws ParseException if a syntax error is encountered
+     */
     public VenyFile parse() {
         // 🔒 Require `package` declaration
         if (!match(TokenType.PACKAGE)) {
@@ -120,6 +134,12 @@ public class RecursiveDescentParser implements Parser {
         return new VenyFile(packageName, imports, classes);
     }
 
+    /**
+     * Parses a qualified name, e.g., a.b.c
+     *
+     * @return the qualified name as a string
+     * @throws ParseException if the qualified name is malformed
+     */
     private String parseQualifiedName() {
         StringBuilder name = new StringBuilder();
         name.append(expect(TokenType.IDENTIFIER, "Expected identifier in qualified name").lexeme());
@@ -132,7 +152,12 @@ public class RecursiveDescentParser implements Parser {
         return name.toString();
     }
 
-    // Parse a Class declaration
+    /**
+     * Parses a class declaration including its fields and methods.
+     *
+     * @return the parsed {@link ClassDecl}
+     * @throws ParseException if class declaration syntax is invalid
+     */
     private ClassDecl parseClassDecl() {
         expect(TokenType.CLASS);
         String className = expect(TokenType.IDENTIFIER).lexeme();
@@ -167,7 +192,13 @@ public class RecursiveDescentParser implements Parser {
         return new ClassDecl(className, fields, methods);
     }
 
-    // Parse a Variable declaration
+    /**
+     * Parses a variable declaration with optional initializer.
+     *
+     * @param visibility the visibility modifier for the variable
+     * @return the parsed {@link VarDecl}
+     * @throws ParseException if syntax is invalid
+     */
     private VarDecl parseVarDecl(Visibility visibility) {
         boolean isMutable;
 
@@ -199,7 +230,13 @@ public class RecursiveDescentParser implements Parser {
         return new VarDecl(varName, typeName, initializer, isMutable, visibility);
     }
 
-    // Parse a Method declaration
+    /**
+     * Parses a method declaration including parameters, return type, and body.
+     *
+     * @param visibility the visibility modifier for the method
+     * @return the parsed {@link MethodDecl}
+     * @throws ParseException if syntax is invalid
+     */
     private MethodDecl parseMethodDecl(Visibility visibility) {
         String methodName = expect(TokenType.IDENTIFIER).lexeme();
         expect(TokenType.LPAREN);
@@ -228,7 +265,12 @@ public class RecursiveDescentParser implements Parser {
         return new MethodDecl(methodName, parameters, returnType, body, visibility);
     }
 
-    // Parse statements inside method body
+    /**
+     * Parses a sequence of statements until the end of the block.
+     *
+     * @return a list of parsed {@link Statement} nodes
+     * @throws ParseException if any statement is invalid
+     */
     private List<Statement> parseStatements() {
         List<Statement> statements = new ArrayList<>();
         while (peek() != null && Objects.requireNonNull(peek()).type() != TokenType.RBRACE) {
@@ -237,7 +279,12 @@ public class RecursiveDescentParser implements Parser {
         return statements;
     }
 
-    // Parse a single statement (e.g., if, while, return, etc.)
+    /**
+     * Parses a single statement.
+     *
+     * @return a parsed {@link Statement}
+     * @throws ParseException if the statement is invalid or unsupported
+     */
     private Statement parseStatement() {
         Token token = Objects.requireNonNull(peek());
 
@@ -265,13 +312,24 @@ public class RecursiveDescentParser implements Parser {
         }
     }
 
-    // Parse a Return statement
+    /**
+     * Parses a return statement starting with the 'return' keyword.
+     *
+     * @return a {@link ReturnStmt} representing the return statement
+     * @throws ParseException if the syntax after 'return' is invalid
+     */
     private ReturnStmt parseReturnStmt() {
         expect(TokenType.RETURN);
         Expression value = parseExpression();
         return new ReturnStmt(value);
     }
 
+    /**
+     * Parses an immutable variable declaration statement starting with 'val'.
+     *
+     * @return a {@link ValStmt} representing the immutable variable declaration
+     * @throws ParseException if syntax is invalid
+     */
     private Statement parseValStatement() {
         consume(TokenType.VAL); // consume 'val'
         String name = expect(TokenType.IDENTIFIER).lexeme();
@@ -291,6 +349,12 @@ public class RecursiveDescentParser implements Parser {
         return new ValStmt(name, type, initializer);
     }
 
+    /**
+     * Parses a mutable variable declaration statement starting with 'var'.
+     *
+     * @return a {@link VarStmt} representing the mutable variable declaration
+     * @throws ParseException if syntax is invalid
+     */
     private Statement parseVarStatement() {
         consume(TokenType.VAR); // consume 'var'
         String name = expect(TokenType.IDENTIFIER).lexeme();
@@ -301,6 +365,13 @@ public class RecursiveDescentParser implements Parser {
         return new VarStmt(name, type, initializer);
     }
 
+    /**
+     * Parses an if statement with an optional else block.
+     * Expects the 'if' token followed by a condition expression and a block.
+     *
+     * @return an {@link IfStmt} node representing the conditional
+     * @throws ParseException if syntax is invalid or blocks are malformed
+     */
     private Statement parseIfStatement() {
         // Consume 'if' token
         consume(TokenType.IF);
@@ -329,6 +400,13 @@ public class RecursiveDescentParser implements Parser {
         return new IfStmt(condition, ifBlock, elseBlock);
     }
 
+    /**
+     * Parses a while loop statement.
+     * Expects 'while' token followed by a condition expression and a block or statement.
+     *
+     * @return a {@link WhileStmt} representing the loop
+     * @throws ParseException if syntax is invalid
+     */
     private Statement parseWhileStatement() {
         consume(TokenType.WHILE);
 
@@ -343,6 +421,13 @@ public class RecursiveDescentParser implements Parser {
         return new WhileStmt(condition, body);
     }
 
+    /**
+     * Parses a for-each loop statement.
+     * Expects 'for' token, loop variable name, 'in' keyword, iterable expression, and loop body block.
+     *
+     * @return a {@link ForStmt} representing the loop
+     * @throws ParseException if syntax is invalid
+     */
     private Statement parseForStatement() {
         consume(TokenType.FOR);
         String varName = expect(TokenType.IDENTIFIER).lexeme();
@@ -352,16 +437,34 @@ public class RecursiveDescentParser implements Parser {
         return new ForStmt(varName, iterable, body);
     }
 
+    /**
+     * Parses a break statement.
+     * Expects the 'break' token.
+     *
+     * @return a {@link BreakStmt} representing the break statement
+     */
     private Statement parseBreakStatement() {
         consume(TokenType.BREAK);
         return new BreakStmt(); // You must define BreakStmt in the AST
     }
 
+    /**
+     * Parses a continue statement.
+     * Expects the 'continue' token.
+     *
+     * @return a {@link ContinueStmt} representing the continue statement
+     */
     private Statement parseContinueStatement() {
         consume(TokenType.CONTINUE);
         return new ContinueStmt(); // Same here
     }
 
+    /**
+     * Parses either a block (surrounded by braces) or a single statement.
+     *
+     * @return a {@link Statement} which is either a {@link BlockStmt} or a single statement
+     * @throws ParseException if syntax is invalid
+     */
     private Statement parseBlockOrStatement() {
         if (match(TokenType.LBRACE)) {
             return parseBlock(); // assuming you have a parseBlock() method returning a BlockStmt
@@ -370,6 +473,13 @@ public class RecursiveDescentParser implements Parser {
         }
     }
 
+    /**
+     * Parses a block of statements enclosed in '{' and '}'.
+     * Expects the opening brace to have been consumed already.
+     *
+     * @return a {@link BlockStmt} containing the list of statements
+     * @throws ParseException if a closing brace is missing or statements are invalid
+     */
     private BlockStmt parseBlock() {
         List<Statement> statements = new ArrayList<>();
 
@@ -382,11 +492,23 @@ public class RecursiveDescentParser implements Parser {
         return new BlockStmt(statements);
     }
 
-    // Parse expressions (simplified for this example)
+    /**
+     * Parses an expression according to operator precedence starting with assignment.
+     *
+     * @return a parsed {@link Expression}
+     * @throws ParseException if the expression syntax is invalid
+     */
     private Expression parseExpression() {
         return parseAssignment();
     }
 
+    /**
+     * Parses assignment expressions.
+     * Recognizes assignment operators and validates left-hand side targets.
+     *
+     * @return a parsed {@link Expression} representing assignment or lower-precedence expressions
+     * @throws ParseException if assignment target is invalid
+     */
     private Expression parseAssignment() {
         Expression expr = parseEquality();
 
@@ -406,6 +528,11 @@ public class RecursiveDescentParser implements Parser {
         return expr;
     }
 
+    /**
+     * Parses equality expressions (==, !=).
+     *
+     * @return a parsed {@link Expression}
+     */
     private Expression parseEquality() {
         Expression expr = parseComparison();
 
@@ -418,6 +545,11 @@ public class RecursiveDescentParser implements Parser {
         return expr;
     }
 
+    /**
+     * Parses comparison expressions (<, >, <=, >=).
+     *
+     * @return a parsed {@link Expression}
+     */
     private Expression parseComparison() {
         Expression expr = parseTerm();
 
@@ -430,6 +562,11 @@ public class RecursiveDescentParser implements Parser {
         return expr;
     }
 
+    /**
+     * Parses addition and subtraction expressions (+, -).
+     *
+     * @return a parsed {@link Expression}
+     */
     private Expression parseTerm() {
         Expression expr = parseFactor();
 
@@ -442,6 +579,11 @@ public class RecursiveDescentParser implements Parser {
         return expr;
     }
 
+    /**
+     * Parses multiplication and division expressions (*, /).
+     *
+     * @return a parsed {@link Expression}
+     */
     private Expression parseFactor() {
         Expression expr = parseUnary();
 
@@ -454,6 +596,11 @@ public class RecursiveDescentParser implements Parser {
         return expr;
     }
 
+    /**
+     * Parses unary expressions, including negation.
+     *
+     * @return a parsed {@link Expression}
+     */
     private Expression parseUnary() {
         if (match(TokenType.MINUS)) {
             Token operator = previous();
@@ -464,6 +611,12 @@ public class RecursiveDescentParser implements Parser {
         return parsePrimary();
     }
 
+    /**
+     * Parses primary expressions: literals, variables, array literals, function calls, member access.
+     *
+     * @return a parsed {@link Expression}
+     * @throws ParseException if the token is unexpected or malformed
+     */
     private Expression parsePrimary() {
 
         if (check(TokenType.LBRACKET)) {
@@ -545,10 +698,22 @@ public class RecursiveDescentParser implements Parser {
         return expr;
     }
 
+    /**
+     * Returns the previously consumed token.
+     *
+     * @return the last consumed {@link Token}
+     */
     private Token previous() {
         return tokens.get(current - 1);
     }
 
+    /**
+     * Expects the next token to be one of the provided types and consumes it.
+     *
+     * @param types expected token types
+     * @return the consumed {@link Token}
+     * @throws ParseException if the next token is not among the expected types
+     */
     private Token expectAny(TokenType... types) {
         for (TokenType type : types) {
             if (peek().type() == type) {
@@ -559,13 +724,22 @@ public class RecursiveDescentParser implements Parser {
         throw new ParseException("Expected one of " + Arrays.toString(types) + " but found " + peek());
     }
 
-    // Parse a variable expression
+    /**
+     * Parses a variable expression (identifier).
+     *
+     * @return a {@link VariableExpr}
+     */
     private Expression parseVariableExpr() {
         String varName = expect(TokenType.IDENTIFIER).lexeme();
         return new VariableExpr(varName);
     }
 
-    // Parse a literal expression (number or string)
+    /**
+     * Parses a literal expression (integer or string).
+     *
+     * @return a {@link LiteralExpr}
+     * @throws ParseException if the literal token is invalid
+     */
     private Expression parseLiteralExpr() {
         Token literal = consume();
         if (literal.type() == TokenType.INT_LITERAL) {
@@ -576,7 +750,7 @@ public class RecursiveDescentParser implements Parser {
         throw new ParseException("Invalid literal: " + literal);
     }
 
-    // Parse binary expressions (for future, can be expanded)
+    // Parse binary expressions (for the future, can be expanded)
     private Expression parseBinaryExpr() {
         // Placeholder for future expansion
         return parseExpression();

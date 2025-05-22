@@ -17,6 +17,23 @@
 
 package org.venylang.veny.parser.ast;
 
+/**
+ * The base interface for all nodes in the Abstract Syntax Tree (AST).
+ * <p>
+ * Every AST node must implement this interface, allowing it to accept an
+ * {@link AstVisitor} for traversing or processing the tree using the Visitor pattern.
+ * </p>
+ *
+ * @param <R> The return type produced by the visitor.
+ */
 public interface AstNode {
+
+    /**
+     * Accepts a visitor that processes this AST node.
+     *
+     * @param visitor The visitor to accept.
+     * @param <R>     The return type of the visitor's processing logic.
+     * @return The result of the visitor's processing.
+     */
     <R> R accept(AstVisitor<R> visitor);
 }

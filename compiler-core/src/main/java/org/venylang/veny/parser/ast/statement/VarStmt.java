@@ -21,15 +21,53 @@ import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 import org.venylang.veny.parser.ast.Statement;
 
+import java.util.Objects;
+
 /**
- * @param type  Optional, depending on language rules */
+ * Represents a mutable variable declaration (`var`) in the AST.
+ *
+ * <p>Examples:
+ * <pre>{@code
+ * var count: Int = 0;
+ * var message: String;
+ * }</pre>
+ *
+ * A `var` defines a mutable variable. The type must be explicitly declared.
+ */
 public record VarStmt(String name, String type, Expression initializer) implements Statement {
 
+    /**
+     * Creates a new mutable variable declaration.
+     *
+     * @param name        The variable's name.
+     * @param type        The declared type of the variable.
+     * @param initializer The initializing expression, or {@code null} if uninitialized.
+     * @return A {@code VarStmt} instance.
+     * @throws NullPointerException if {@code name} or {@code type} is null.
+     */
+    public static VarStmt of(String name, String type, Expression initializer) {
+        Objects.requireNonNull(name, "name must not be null");
+        Objects.requireNonNull(type, "type must not be null");
+        return new VarStmt(name, type, initializer);
+    }
+
+    /**
+     * Accepts an AST visitor.
+     *
+     * @param visitor The visitor processing this statement.
+     * @param <R>     The result type of the visitor.
+     * @return The result from the visitor.
+     */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
         return visitor.visitVarStmt(this);
     }
 
+    /**
+     * Returns a string representation of this `var` statement.
+     *
+     * @return a formatted string like {@code var name: Type = value}
+     */
     @Override
     public String toString() {
         return "var " + name + ": " + type + (initializer != null ? " = " + initializer : "");

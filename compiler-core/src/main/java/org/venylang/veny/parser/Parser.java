@@ -19,6 +19,16 @@ package org.venylang.veny.parser;
 
 import org.venylang.veny.parser.ast.VenyFile;
 
+/**
+ * Parser interface for parsing source code into an abstract syntax tree (AST).
+ */
 public interface Parser {
-    VenyFile parse();
+
+    /**
+     * Parses the input source and returns the root AST node representing a Veny file.
+     *
+     * @return the parsed {@link VenyFile} AST node
+     * @throws ParseException if an error occurs during parsing
+     */
+    VenyFile parse() throws ParseException;
 }

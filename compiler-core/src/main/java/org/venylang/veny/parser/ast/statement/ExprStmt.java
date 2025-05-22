@@ -21,15 +21,51 @@ import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 import org.venylang.veny.parser.ast.Statement;
 
+import java.util.Objects;
+
+/**
+ * Represents a statement consisting of a single expression.
+ *
+ * <p>Example:
+ * <pre>{@code
+ *   foo();
+ *   x + y;
+ * }</pre>
+ */
 public record ExprStmt(Expression expression) implements Statement {
 
+  /**
+   * Creates a new expression statement.
+   *
+   * @param expression The expression contained in this statement.
+   * @return a new ExprStmt instance.
+   * @throws NullPointerException if expression is null.
+   */
+  public static ExprStmt of(Expression expression) {
+    Objects.requireNonNull(expression, "expression must not be null");
+    return new ExprStmt(expression);
+  }
+
+  /**
+   * Accepts a visitor, dispatching to the visitor's method for expression statements.
+   *
+   * @param visitor The visitor to process this AST node.
+   * @param <R>     The return type of the visitor.
+   * @return The result of the visitor's processing.
+   */
   @Override
   public <R> R accept(AstVisitor<R> visitor) {
     return visitor.visitExprStmt(this);
   }
 
+  /**
+   * Returns a string representation of this expression statement.
+   *
+   * @return a string with the expression followed by a semicolon.
+   */
   @Override
   public String toString() {
     return expression.toString() + ";";
   }
 }
+

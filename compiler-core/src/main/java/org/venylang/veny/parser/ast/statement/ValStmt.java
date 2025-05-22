@@ -21,13 +21,53 @@ import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 import org.venylang.veny.parser.ast.Statement;
 
+import java.util.Objects;
+
+/**
+ * Represents an immutable variable declaration (`val`) in the AST.
+ *
+ * <p>Examples:
+ * <pre>{@code
+ * val x: Int = 42;
+ * val name: String;
+ * }</pre>
+ *
+ * A `val` defines a read-only variable. The type is always explicit in Veny.
+ */
 public record ValStmt(String name, String type, Expression initializer) implements Statement {
 
+    /**
+     * Creates a new immutable variable declaration.
+     *
+     * @param name        The name of the variable.
+     * @param type        The declared type of the variable.
+     * @param initializer The expression used to initialize the variable (nullable).
+     * @return A new {@code ValStmt} instance.
+     * @throws NullPointerException if {@code name} or {@code type} is null.
+     */
+    public static ValStmt of(String name, String type, Expression initializer) {
+        Objects.requireNonNull(name, "name must not be null");
+        Objects.requireNonNull(type, "type must not be null");
+        return new ValStmt(name, type, initializer);
+    }
+
+    /**
+     * Accepts a visitor to process this `val` statement.
+     *
+     * @param visitor The AST visitor.
+     * @param <R>     The visitor's return type.
+     * @return The result of the visitor's operation.
+     */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
         return visitor.visitValStmt(this);
     }
 
+    /**
+     * Returns a string representation of this `val` statement.
+     *
+     * @return a formatted string like {@code val name: Type = value}
+     */
     @Override
     public String toString() {
         return "val " + name + ": " + type + (initializer != null ? " = " + initializer : "");

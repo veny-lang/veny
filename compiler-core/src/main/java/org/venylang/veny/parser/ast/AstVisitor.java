@@ -20,14 +20,62 @@ package org.venylang.veny.parser.ast;
 import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
 
+/**
+ * Represents a visitor for traversing or processing the Abstract Syntax Tree (AST)
+ * of the Veny language using the Visitor design pattern.
+ * <p>
+ * Each method corresponds to a specific AST node type. Implementations of this interface
+ * define how each node is handled, often used for operations such as interpretation,
+ * compilation, type checking, or pretty-printing.
+ *
+ * @param <R> The return type of each visitor method (e.g., {@code Void} if no return value is needed).
+ */
 public interface AstVisitor<R> {
+
+    // Top-level structures
+
+    /**
+     * Visits a program root node.
+     *
+     * @param node the Program node
+     * @return result of visiting
+     */
     R visitProgram(Program node);
+
+    /**
+     * Visits a single Veny source file.
+     *
+     * @param node the VenyFile node
+     * @return result of visiting
+     */
     R visitVenyFile(VenyFile node);
+
+    /**
+     * Visits a class declaration.
+     *
+     * @param node the ClassDecl node
+     * @return result of visiting
+     */
     R visitClassDecl(ClassDecl node);
+
+    /**
+     * Visits a field or variable declaration in a class.
+     *
+     * @param node the VarDecl node
+     * @return result of visiting
+     */
     R visitVarDecl(VarDecl node);
+
+    /**
+     * Visits a method declaration in a class.
+     *
+     * @param node the MethodDecl node
+     * @return result of visiting
+     */
     R visitMethodDecl(MethodDecl node);
 
     // Statements
+
     R visitBlockStmt(BlockStmt node);
     R visitIfStmt(IfStmt node);
     R visitWhileStmt(WhileStmt node);
@@ -36,8 +84,11 @@ public interface AstVisitor<R> {
     R visitExprStmt(ExprStmt node);
     R visitVarStmt(VarStmt node);
     R visitValStmt(ValStmt node);
+    R visitBreakStmt(BreakStmt node);
+    R visitContinueStmt(ContinueStmt node);
 
     // Expressions
+
     R visitBinaryExpr(BinaryExpr node);
     R visitUnaryExpr(UnaryExpr node);
     R visitLiteralExpr(LiteralExpr node);
@@ -47,7 +98,5 @@ public interface AstVisitor<R> {
     R visitNewExpr(NewExpr node);
     R visitGetExpr(GetExpr node);
     R visitSetExpr(SetExpr node);
-    R visitBreakStmt(BreakStmt breakStmt);
-    R visitContinueStmt(ContinueStmt continueStmt);
-    R visitArrayLiteralExpr(ArrayLiteralExpr arrayLiteralExpr);
+    R visitArrayLiteralExpr(ArrayLiteralExpr node);
 }

@@ -20,8 +20,6 @@ package org.venylang.veny.semantic.types;
 import org.venylang.veny.semantic.Type;
 import org.venylang.veny.semantic.symbols.ClassSymbol;
 
-import java.util.Objects;
-
 /**
  * Represents a user-defined class type.
  */

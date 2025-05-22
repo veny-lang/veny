@@ -17,11 +17,27 @@
 
 package org.venylang.veny.parser;
 
+/**
+ * Exception thrown to indicate errors during parsing.
+ * Extends {@link RuntimeException} so it is unchecked.
+ */
 public class ParseException extends RuntimeException {
+
+    /**
+     * Constructs a new ParseException with the specified detail message.
+     *
+     * @param message the detail message explaining the reason for the exception
+     */
     public ParseException(String message) {
         super(message);
     }
 
+    /**
+     * Constructs a new ParseException with the specified detail message and cause.
+     *
+     * @param message the detail message explaining the reason for the exception
+     * @param cause   the cause of this exception (can be null)
+     */
     public ParseException(String message, Throwable cause) {
         super(message, cause);
     }

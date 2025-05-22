@@ -22,15 +22,53 @@ import org.venylang.veny.parser.ast.Statement;
 
 import java.util.List;
 
+import java.util.Objects;
+
+/**
+ * Represents a block of statements enclosed in braces.
+ *
+ * <p>Example:
+ * <pre>{@code
+ * {
+ *   val x = 10
+ *   System.print(x)
+ * }
+ * }</pre>
+ */
 public record BlockStmt(List<Statement> statements) implements Statement {
 
+  /**
+   * Creates a new block statement with a list of statements.
+   *
+   * @param statements The list of statements in the block.
+   * @return a new BlockStmt instance.
+   * @throws NullPointerException if statements is null.
+   */
+  public static BlockStmt of(List<Statement> statements) {
+    Objects.requireNonNull(statements, "statements must not be null");
+    return new BlockStmt(statements);
+  }
+
+  /**
+   * Accepts a visitor, dispatching to the visitor's method for block statements.
+   *
+   * @param visitor The visitor to process this AST node.
+   * @param <R>     The return type of the visitor.
+   * @return The result of the visitor's processing.
+   */
   @Override
   public <R> R accept(AstVisitor<R> visitor) {
     return visitor.visitBlockStmt(this);
   }
 
+  /**
+   * Returns a string representation of this block statement.
+   *
+   * @return a string in the format "{ [stmt1, stmt2, ...] }"
+   */
   @Override
   public String toString() {
     return "{ " + statements + " }";
   }
 }
+
