@@ -19,7 +19,7 @@ package org.venylang.veny.lexer;
 
 public enum TokenType {
     // Keywords
-    CLASS, VAR, VAL, RETURN, IF, ELSE, FOR, WHILE,
+    CLASS, INTERFACE, EXT, IMPL, VAR, VAL, RETURN, IF, ELSE, FOR, WHILE,
     BREAK, CONTINUE, IMPORT, PACKAGE, TRUE, FALSE, NULL,
     PUB, PRI, IN,
 

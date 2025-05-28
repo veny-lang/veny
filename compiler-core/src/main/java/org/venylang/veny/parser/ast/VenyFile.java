@@ -21,11 +21,16 @@ import java.util.List;
 
 /**
  * Represents a single Veny source file (.veny) within a compilation unit.
- * A Veny file must declare its package and can contain multiple class declarations.
+ * A Veny file must declare its package and can contain multiple class and interface declarations.
  *
  * This class is part of the AST and participates in semantic analysis and code generation.
  */
-public record VenyFile(String packageName, List<String> imports, List<ClassDecl> classes) implements AstNode {
+public record VenyFile(
+        String packageName,
+        List<String> imports,
+        List<ClassDecl> classes,
+        List<InterfaceDecl> interfaces
+) implements AstNode {
 
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
@@ -35,9 +40,10 @@ public record VenyFile(String packageName, List<String> imports, List<ClassDecl>
     @Override
     public String toString() {
         return "VenyFile{" +
-            "package='" + packageName + '\'' +
-            ", imports=" + imports +
-            ", classes=" + classes +
-            '}';
+                "package='" + packageName + '\'' +
+                ", imports=" + imports +
+                ", classes=" + classes +
+                ", interfaces=" + interfaces +
+                '}';
     }
 }

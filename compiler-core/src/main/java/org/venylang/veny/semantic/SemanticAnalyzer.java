@@ -153,6 +153,11 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitInterfaceDecl(InterfaceDecl node) {
+        return null;
+    }
+
     /** {@inheritDoc} */
     @Override
     public Void visitVarDecl(VarDecl node) {

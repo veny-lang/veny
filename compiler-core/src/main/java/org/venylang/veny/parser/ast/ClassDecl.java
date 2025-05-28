@@ -19,66 +19,79 @@ package org.venylang.veny.parser.ast;
 
 import java.util.List;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
  * Represents a class declaration in the Veny language AST.
  * <p>
- * A class consists of a name, a list of field declarations, and a list of method declarations.
+ * A class consists of a name, optional superclass, a list of interfaces,
+ * a list of field declarations, and a list of method declarations.
  *
  * <p>Example:
  * <pre>
- * class Person {
+ * class Dog extends Animal implements Pet, Runnable {
  *     val name: String
- *     var age: Int
- *     fun greet() { ... }
+ *     fun bark() { ... }
  * }
  * </pre>
  *
- * @param name    The name of the class.
- * @param fields  The list of field declarations (both val and var).
- * @param methods The list of method declarations.
+ * @param name       The name of the class.
+ * @param parent     The name of the parent class (null if none).
+ * @param interfaces The list of implemented interfaces.
+ * @param fields     The list of field declarations (both val and var).
+ * @param methods    The list of method declarations.
  */
-public record ClassDecl(String name, List<VarDecl> fields, List<MethodDecl> methods) implements AstNode {
+public record ClassDecl(
+        String name,
+        String parent,              // e.g., "Animal"
+        List<String> interfaces,        // e.g., ["Pet", "Runnable"]
+        List<VarDecl> fields,
+        List<MethodDecl> methods
+) implements AstNode {
 
     /**
-     * Constructs a new {@code ClassDecl} instance with the given name, fields, and methods.
+     * Constructs a new {@code ClassDecl} instance with the given name, superclass, interfaces, fields, and methods.
      *
-     * @param name    the name of the class
-     * @param fields  the list of field declarations
-     * @param methods the list of method declarations
+     * @param name       the name of the class
+     * @param parent     the optional parent class name (can be null)
+     * @param interfaces the list of implemented interfaces (non-null)
+     * @param fields     the list of field declarations
+     * @param methods    the list of method declarations
      * @return a new {@code ClassDecl} instance
-     * @throws NullPointerException if any argument is {@code null}
+     * @throws NullPointerException if name, interfaces, fields, or methods are {@code null}
      */
-    public static ClassDecl of(String name, List<VarDecl> fields, List<MethodDecl> methods) {
+    public static ClassDecl of(
+            String name,
+            String parent,
+            List<String> interfaces,
+            List<VarDecl> fields,
+            List<MethodDecl> methods
+    ) {
         Objects.requireNonNull(name, "Class name must not be null");
+        Objects.requireNonNull(interfaces, "Interfaces must not be null");
         Objects.requireNonNull(fields, "Fields must not be null");
         Objects.requireNonNull(methods, "Methods must not be null");
-        return new ClassDecl(name, fields, methods);
+        return new ClassDecl(name, parent, interfaces, fields, methods);
     }
 
-    /**
-     * Accepts a visitor that processes this class declaration.
-     *
-     * @param visitor the AST visitor
-     * @return the result of the visitor's processing
-     */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
         return visitor.visitClassDecl(this);
     }
 
-    /**
-     * Returns a string representation of the class declaration.
-     *
-     * @return a string representation
-     */
     @Override
     public String toString() {
-        return "class " + name + " {\n" +
-                "  fields: " + fields + "\n" +
-                "  methods: " + methods + "\n" +
-                "}";
+        StringBuilder sb = new StringBuilder("class " + name);
+        if (parent != null) {
+            sb.append(" extends ").append(parent);
+        }
+        if (!interfaces.isEmpty()) {
+            sb.append(" implements ").append(String.join(", ", interfaces));
+        }
+        sb.append(" {\n");
+        sb.append("  fields: ").append(fields).append("\n");
+        sb.append("  methods: ").append(methods).append("\n");
+        sb.append("}");
+        return sb.toString();
     }
 }

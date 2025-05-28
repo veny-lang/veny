@@ -59,6 +59,14 @@ public interface AstVisitor<R> {
     R visitClassDecl(ClassDecl node);
 
     /**
+     * Visits an interface declaration.
+     *
+     * @param node the InterfaceDecl node
+     * @return result of visiting
+     */
+    R visitInterfaceDecl(InterfaceDecl node);
+
+    /**
      * Visits a field or variable declaration in a class.
      *
      * @param node the VarDecl node

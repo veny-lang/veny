@@ -125,13 +125,22 @@ public class RecursiveDescentParser implements Parser {
             imports.add(importName);
         }
 
-        // 🧱 Parse class declarations
+        // 🧱 Parse class and interface declarations
         List<ClassDecl> classes = new ArrayList<>();
+        List<InterfaceDecl> interfaces = new ArrayList<>();
+
         while (peek() != null && peek().type() != TokenType.EOF) {
-            classes.add(parseClassDecl());
+            TokenType type = peek().type();
+            if (type == TokenType.CLASS) {
+                classes.add(parseClassDecl());
+            } else if (type == TokenType.INTERFACE) {
+                interfaces.add(parseInterfaceDecl());
+            } else {
+                throw new ParseException("Unexpected top-level declaration: " + peek().lexeme());
+            }
         }
 
-        return new VenyFile(packageName, imports, classes);
+        return new VenyFile(packageName, imports, classes, interfaces);
     }
 
     /**
@@ -161,16 +170,30 @@ public class RecursiveDescentParser implements Parser {
     private ClassDecl parseClassDecl() {
         expect(TokenType.CLASS);
         String className = expect(TokenType.IDENTIFIER).lexeme();
+
+        // Handle optional 'ext' parent class
+        String parent = null;
+        if (match(TokenType.EXT)) {
+            parent = expect(TokenType.IDENTIFIER).lexeme();
+        }
+
+        // Handle optional 'impl' interfaces
+        List<String> interfaces = new ArrayList<>();
+        if (match(TokenType.IMPL)) {
+            interfaces.add(expect(TokenType.IDENTIFIER).lexeme());
+            while (match(TokenType.COMMA)) {
+                interfaces.add(expect(TokenType.IDENTIFIER).lexeme());
+            }
+        }
+
         expect(TokenType.LBRACE);
 
         List<VarDecl> fields = new ArrayList<>();
         List<MethodDecl> methods = new ArrayList<>();
 
-        while (peek() != null && Objects.requireNonNull(peek()).type() != TokenType.RBRACE) {
-            // Default visibility if no modifier appears
+        while (peek() != null && peek().type() != TokenType.RBRACE) {
             Visibility visibility = Visibility.DEFAULT;
 
-            // Check for visibility modifiers
             if (match(TokenType.PUB)) {
                 visibility = Visibility.PUBLIC;
             } else if (match(TokenType.PRI)) {
@@ -178,18 +201,49 @@ public class RecursiveDescentParser implements Parser {
             }
 
             Token next = peek();
-
             if (next.type() == TokenType.VAR || next.type() == TokenType.VAL) {
                 fields.add(parseVarDecl(visibility));
             } else if (next.type() == TokenType.IDENTIFIER && lookAhead(1).type() == TokenType.LPAREN) {
                 methods.add(parseMethodDecl(visibility));
             } else {
-                throw new ParseException("Unexpected token in class body: " + peek());
+                throw new ParseException("Unexpected token in class body: " + next);
             }
         }
 
         expect(TokenType.RBRACE);
-        return new ClassDecl(className, fields, methods);
+        return new ClassDecl(className, parent, interfaces, fields, methods);
+    }
+
+    private InterfaceDecl parseInterfaceDecl() {
+        expect(TokenType.INTERFACE);
+        String interfaceName = expect(TokenType.IDENTIFIER).lexeme();
+
+        // Handle optional parent interfaces via 'impl'
+        List<String> parents = new ArrayList<>();
+        if (match(TokenType.IMPL)) {
+            parents.add(expect(TokenType.IDENTIFIER).lexeme());
+            while (match(TokenType.COMMA)) {
+                parents.add(expect(TokenType.IDENTIFIER).lexeme());
+            }
+        }
+
+        expect(TokenType.LBRACE);
+
+        List<MethodDecl> methods = new ArrayList<>();
+
+        while (peek() != null && peek().type() != TokenType.RBRACE) {
+            Token next = peek();
+
+            // Method declarations in the interface must be without a body
+            if (next.type() == TokenType.IDENTIFIER && lookAhead(1).type() == TokenType.LPAREN) {
+                methods.add(parseInterfaceMethod());
+            } else {
+                throw new ParseException("Only method signatures allowed in interfaces. Found: " + next);
+            }
+        }
+
+        expect(TokenType.RBRACE);
+        return new InterfaceDecl(interfaceName, parents, methods);
     }
 
     /**
@@ -238,32 +292,42 @@ public class RecursiveDescentParser implements Parser {
      * @throws ParseException if syntax is invalid
      */
     private MethodDecl parseMethodDecl(Visibility visibility) {
+        MethodHeader header = parseMethodHeader();
+        expect(TokenType.LBRACE);
+        List<Statement> body = parseStatements();
+        expect(TokenType.RBRACE);
+        return new MethodDecl(header.name(), header.params(), header.returnType(), body, visibility);
+    }
+
+    private MethodDecl parseInterfaceMethod() {
+        MethodHeader header = parseMethodHeader();
+        return new MethodDecl(header.name(), header.params(), header.returnType(), null, Visibility.DEFAULT);
+    }
+
+    private MethodHeader parseMethodHeader() {
         String methodName = expect(TokenType.IDENTIFIER).lexeme();
         expect(TokenType.LPAREN);
 
         List<MethodDecl.Parameter> parameters = new ArrayList<>();
-        while (Objects.requireNonNull(peek()).type() != TokenType.RPAREN) {
+        while (peek().type() != TokenType.RPAREN) {
             String paramName = expect(TokenType.IDENTIFIER).lexeme();
             expect(TokenType.COLON);
             String paramType = expect(TokenType.IDENTIFIER).lexeme();
             parameters.add(new MethodDecl.Parameter(paramName, paramType));
-            if (Objects.requireNonNull(peek()).type() != TokenType.RPAREN) expect(TokenType.COMMA);
+            if (peek().type() != TokenType.RPAREN) expect(TokenType.COMMA);
         }
-
         expect(TokenType.RPAREN);
 
-        // Optional return type
         String returnType = "void";
         if (peek().type() == TokenType.COLON) {
             consume();
             returnType = expect(TokenType.IDENTIFIER).lexeme();
         }
 
-        expect(TokenType.LBRACE);
-        List<Statement> body = parseStatements();
-        expect(TokenType.RBRACE);
-        return new MethodDecl(methodName, parameters, returnType, body, visibility);
+        return new MethodHeader(methodName, parameters, returnType);
     }
+
+    private record MethodHeader(String name, List<MethodDecl.Parameter> params, String returnType) {}
 
     /**
      * Parses a sequence of statements until the end of the block.

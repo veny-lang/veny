@@ -94,3 +94,18 @@ class Greeter {
         System.print("Greeted " + count + " times")
     }
 }
+
+class Dog ext Animal impl Pet, Runnable {
+    bark(): void {
+        System.print("Woof")
+    }
+}
+
+interface Pet {
+    play(): void
+}
+
+interface Movable impl Updatable, Renderable {
+    move(x: Int, y: Int): Void
+    stop(): Void
+}

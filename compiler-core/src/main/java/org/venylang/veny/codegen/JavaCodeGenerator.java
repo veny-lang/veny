@@ -129,6 +129,11 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     @Override
+    public Void visitInterfaceDecl(InterfaceDecl node) {
+        return null;
+    }
+
+    @Override
     public Void visitVarDecl(VarDecl node) {
         String visibility = node.visibility().toString().toLowerCase();
         String line = visibility + " " + node.typeName() + " " + node.name() + ";";

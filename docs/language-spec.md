@@ -1,4 +1,8 @@
-# Veny Language Specification (v0.5.1)
+# Veny Language Specification (v0.6.0)
+
+© 2025 The Veny Language Project. Licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+---
 
 ## Overview
 
