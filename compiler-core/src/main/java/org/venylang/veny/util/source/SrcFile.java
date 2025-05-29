@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+package org.venylang.veny.util.source;
 
 public class SrcFile {
   private final String name;
@@ -36,4 +37,13 @@ public class SrcFile {
 
   public String content() {
     return content;
+  }
+
+  public Pos getPos(int offset) {
+    if (offset < 0 || offset > content.length()) {
+      throw new IllegalArgumentException("Offset out of bounds");
+    }
+    return new Pos(base + offset);
+  }
+  
 }
