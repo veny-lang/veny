@@ -16,3 +16,5 @@
  */
 
 package org.venylang.veny.util.source;
+
+public class VenyFile {}
