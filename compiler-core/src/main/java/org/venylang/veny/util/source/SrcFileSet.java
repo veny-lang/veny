@@ -17,4 +17,14 @@
 
 package org.venylang.veny.util.source;
 
-public class VenyFile {}
+public class SrcFileSet {
+  private final List<SrcFile> files = new ArrayList<>();
+  private int currentBase = 1; // Start from 1 like Go
+
+  public SrcFile addFile(String name, int size, String content) {
+  }
+
+  public Position getPosition(Pos pos) {
+  }
+  
+}
