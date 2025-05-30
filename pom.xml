@@ -15,5 +15,6 @@
         <module>compiler-core</module>
         <module>veny-cli</module>
         <module>stdlib</module>
+        <module>veny-cli-picocli</module>
     </modules>
 </project>

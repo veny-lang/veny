@@ -55,6 +55,7 @@ public enum TokenType {
     LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,
     SEMICOLON, COLON, COMMA, DOT,
 
-    // End of a file
-    EOF
+    // Special tokens
+    ERROR, // Error
+    EOF    // End of a file
 }

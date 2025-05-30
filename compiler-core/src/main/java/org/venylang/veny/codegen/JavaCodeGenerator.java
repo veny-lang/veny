@@ -106,7 +106,21 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visitClassDecl(ClassDecl node) {
-        builder.appendLine("public class " + node.name() + " {")
+        StringBuilder classSignature = new StringBuilder("public class ").append(node.name());
+
+        // Handle optional superclass (ext)
+        if (node.parent() != null && !node.parent().isEmpty()) {
+            classSignature.append(" extends ").append(node.parent());
+        }
+
+        // Handle implemented interfaces (impl)
+        if (!node.interfaces().isEmpty()) {
+            classSignature.append(" implements ");
+            classSignature.append(String.join(", ", node.interfaces()));
+        }
+
+        builder.appendLine(classSignature.toString())
+                .appendLine("{")
                 .indent();
 
         for (VarDecl field : node.fields()) {
@@ -114,12 +128,12 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         }
 
         if (!node.fields().isEmpty() && !node.methods().isEmpty()) {
-            builder.appendRawLine(""); // separate fields from methods
+            builder.appendRawLine(""); // Blank line between fields and methods
         }
 
         for (MethodDecl method : node.methods()) {
             method.accept(this);
-            builder.appendRawLine(""); // separate methods
+            builder.appendRawLine(""); // Blank line between methods
         }
 
         builder.unindent()

@@ -14,11 +14,8 @@
  * limitations under the License.
  *
  */
+
 package org.venylang.veny.util.source;
 
-public record Position(String fileName, int line, int column) {
-  @Override
-  public String toString() {
-    return filename + ":" + line + ":" + column;
-  }
+public record LineInfo(String fileName, int offset, int line) {
 }

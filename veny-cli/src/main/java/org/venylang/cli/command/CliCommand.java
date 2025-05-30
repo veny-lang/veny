@@ -14,6 +14,11 @@
  * limitations under the License.
  *
  */
-package org.venylang.veny.util.source;
 
-public record Pos(int offset) {}
+package org.venylang.cli.command;
+
+public interface CliCommand {
+    void execute(String[] args);
+    String name();
+    String description();
+}
