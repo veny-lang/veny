@@ -59,6 +59,27 @@ public class SrcFileSet {
     }
 
     /**
+     * Adds a new source file to the file set using the current base offset.
+     * <p>
+     * This is a convenience overload of {@link #addFile(String, int, int)} where the base
+     * is implicitly set to the current base of the file set.
+     * </p>
+     * <p>
+     * The size must be non-negative and represents the number of characters in the file,
+     * including the final newline if present. The new file will be assigned a base offset,
+     * and the internal base will be updated accordingly for the next file.
+     * </p>
+     *
+     * @param fileName the name (or path) of the file being added
+     * @param size the size of the file in characters
+     * @return the position map for the newly added file
+     * @throws IllegalStateException if the size is negative or if the computed base overflows
+     */
+    public SrcFilePosMap addFile(String fileName, int size) {
+        return addFile(fileName, -1, size);
+    }
+
+    /**
      * Adds a new SrcFilePosMap to this file set.
      *
      * @param fileName the name of the source file

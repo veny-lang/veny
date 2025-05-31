@@ -18,17 +18,34 @@
 package org.venylang.veny.lexer;
 
 import org.junit.jupiter.api.Test;
+import org.venylang.veny.util.source.SrcFilePosMap;
+import org.venylang.veny.util.source.SrcFileSet;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VenyLexerTest {
 
+    private Lexer makeLexer(String source) {
+        SrcFileSet fileSet = new SrcFileSet();
+        List<Integer> lineOffsets = new ArrayList<>();
+        lineOffsets.add(0);
+        for (int i = 0; i < source.length(); i++) {
+            if (source.charAt(i) == '\n') {
+                lineOffsets.add(i + 1);
+            }
+        }
+        int[] lines = lineOffsets.stream().mapToInt(Integer::intValue).toArray();
+        SrcFilePosMap posMap = new SrcFilePosMap(fileSet, "test", 1, source.length(), lines);
+        return new Lexer(source, posMap);
+    }
+
     @Test
     public void testKeywords() {
         String input = "var class return";
-        Lexer lexer = new Lexer(input);
+        Lexer lexer = makeLexer(input);
         List<Token> tokens = lexer.scanTokens();
         assertEquals(TokenType.VAR, tokens.get(0).type());
         assertEquals(TokenType.CLASS, tokens.get(1).type());
@@ -38,7 +55,7 @@ public class VenyLexerTest {
     @Test
     public void testIdentifiers() {
         String input = "myVar another_name";
-        Lexer lexer = new Lexer(input);
+        Lexer lexer = makeLexer(input);
         List<Token> tokens = lexer.scanTokens();
         assertEquals(TokenType.IDENTIFIER, tokens.get(0).type());
         assertEquals("myVar", tokens.get(0).lexeme());
@@ -49,7 +66,7 @@ public class VenyLexerTest {
     @Test
     public void testLiterals() {
         String input = "42 3.14 \"hello\"";
-        Lexer lexer = new Lexer(input);
+        Lexer lexer = makeLexer(input);
         List<Token> tokens = lexer.scanTokens();
         assertEquals(TokenType.INT_LITERAL, tokens.get(0).type());
         assertEquals("42", tokens.get(0).lexeme());
@@ -62,7 +79,7 @@ public class VenyLexerTest {
     @Test
     public void testSymbols() {
         String input = "{ } ( ) : ; + - * / = == != < <= > >=";
-        Lexer lexer = new Lexer(input);
+        Lexer lexer = makeLexer(input);
         List<Token> tokens = lexer.scanTokens();
         TokenType[] expected = {
                 TokenType.LBRACE, TokenType.RBRACE, TokenType.LPAREN, TokenType.RPAREN,
@@ -78,7 +95,7 @@ public class VenyLexerTest {
     @Test
     public void testUnterminatedStringError() {
         String input = "\"hello";
-        Lexer lexer = new Lexer(input);
+        Lexer lexer = makeLexer(input);
         lexer.scanTokens();
         //Exception exception = assertThrows(LexerException.class, lexer::scanTokens);
         //assertTrue(exception.getMessage().contains("Unterminated string"));
@@ -87,7 +104,7 @@ public class VenyLexerTest {
     @Test
     public void testInvalidCharacter() {
         String input = "@";
-        Lexer lexer = new Lexer(input);
+        Lexer lexer = makeLexer(input);
         lexer.scanTokens();
         //Exception exception = assertThrows(LexerException.class, lexer::scanTokens);
         //assertTrue(exception.getMessage().contains("Unexpected character"));

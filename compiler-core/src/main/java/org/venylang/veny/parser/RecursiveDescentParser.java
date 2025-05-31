@@ -17,12 +17,14 @@
 
 package org.venylang.veny.parser;
 
+import org.venylang.veny.context.ParseContext;
 import org.venylang.veny.lexer.Token;
 import org.venylang.veny.lexer.TokenType;
 import org.venylang.veny.parser.ast.*;
 import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
 import org.venylang.veny.util.Visibility;
+import org.venylang.veny.util.source.Position;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +37,7 @@ import java.util.Objects;
  */
 public class RecursiveDescentParser implements Parser {
     private final List<Token> tokens;
+    private final ParseContext parseContext;
     private int current = 0;
 
     /**
@@ -42,8 +45,9 @@ public class RecursiveDescentParser implements Parser {
      *
      * @param tokens the token stream to parse
      */
-    public RecursiveDescentParser(List<Token> tokens) {
+    public RecursiveDescentParser(List<Token> tokens, ParseContext parseContext) {
         this.tokens = tokens;
+        this.parseContext = parseContext;
     }
 
     // Helper method to consume the current token and advance
@@ -114,7 +118,8 @@ public class RecursiveDescentParser implements Parser {
         // 🔒 Require `package` declaration
         if (!match(TokenType.PACKAGE)) {
             Token token = peek();
-            throw new ParseException("[" + token.line() + "] Error: Expected `package` declaration at the top of the file.");
+            Position pos = parseContext.srcFilePosMap().positionFor(token.offset(), true);
+            throw new ParseException("Error at " + pos + ": Expected `package` declaration at the top of the file.");
         }
         String packageName = parseQualifiedName();
 

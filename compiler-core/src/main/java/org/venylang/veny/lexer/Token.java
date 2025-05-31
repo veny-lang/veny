@@ -17,12 +17,26 @@
 
 package org.venylang.veny.lexer;
 
-/**
-*
-*/
-public record Token(TokenType type, String lexeme, int line) {
+import org.venylang.veny.util.source.Offset;
+import org.venylang.veny.util.source.SrcFileSet;
 
+/**
+ * Represents a lexical token produced by the lexer.
+ * <p>
+ * A token consists of a type (e.g., identifier, keyword, literal), the matched lexeme
+ * (i.e., the exact substring from the source), and an {@link Offset} indicating its position
+ * within the source file.
+ * <p>
+ * Line and column information can be retrieved from the {@link SrcFileSet} using the offset.
+ *
+ * @param type   the type of the token (e.g., IDENTIFIER, NUMBER, STRING)
+ * @param lexeme the exact text matched for this token
+ * @param offset the file-relative offset of the token’s starting character
+ */
+public record Token(TokenType type, String lexeme, Offset offset) {
+
+    @Override
     public String toString() {
-        return type + " '" + lexeme + "' (line " + line + ")";
+        return type + " '" + lexeme + "' (offset " + offset + ")";
     }
 }

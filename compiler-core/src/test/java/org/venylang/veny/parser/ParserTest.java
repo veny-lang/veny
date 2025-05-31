@@ -17,25 +17,54 @@
 
 package org.venylang.veny.parser;
 
+import org.venylang.veny.context.ParseContext;
 import org.venylang.veny.lexer.Lexer;
 import org.venylang.veny.lexer.Token;
 import org.venylang.veny.parser.ast.*;
 import org.junit.jupiter.api.Test;
 import org.venylang.veny.parser.ast.expression.ArrayLiteralExpr;
 import org.venylang.veny.parser.ast.expression.LiteralExpr;
+import org.venylang.veny.util.source.SrcFilePosMap;
+import org.venylang.veny.util.source.SrcFileSet;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ParserTest {
 
+    private Lexer makeLexer(ParseContext context) {
+        return new Lexer(context.source(), context.srcFilePosMap());
+    }
+
+    private ParseContext makeParseContext(String source) {
+        SrcFileSet fileSet = new SrcFileSet();
+        List<Integer> lineOffsets = new ArrayList<>();
+        lineOffsets.add(0);
+        for (int i = 0; i < source.length(); i++) {
+            if (source.charAt(i) == '\n') {
+                lineOffsets.add(i + 1);
+            }
+        }
+        int[] lines = lineOffsets.stream().mapToInt(Integer::intValue).toArray();
+        SrcFilePosMap posMap = new SrcFilePosMap(fileSet, "test", 1, source.length(), lines);
+        return ParseContext.builder()
+                .source(source)
+                .filePath(Path.of("test"))  // Can be adapted as needed
+                .srcFilePosMap(posMap)
+                .build();
+    }
+
     @Test
     void testParseProgram() {
         String input = "package test class Person { var name: String = \"John\" }";
-        Lexer lexer = new Lexer(input);
+        ParseContext context = makeParseContext(input);
+        Lexer lexer = makeLexer(context);
         List<Token> tokens = lexer.scanTokens();
-        RecursiveDescentParser parser = new RecursiveDescentParser(tokens);
+
+        RecursiveDescentParser parser = new RecursiveDescentParser(tokens, context);
 
         VenyFile program = parser.parse();
         assertNotNull(program);
@@ -53,9 +82,10 @@ public class ParserTest {
             }
         """;
 
-        Lexer lexer = new Lexer(source);
+        ParseContext context = makeParseContext(source);
+        Lexer lexer = makeLexer(context);
         List<Token> tokens = lexer.scanTokens();
-        RecursiveDescentParser parser = new RecursiveDescentParser(tokens);
+        RecursiveDescentParser parser = new RecursiveDescentParser(tokens, context);
 
         ParseException ex = assertThrows(ParseException.class, parser::parse);
         assertTrue(ex.getMessage().contains("Expected '=' to initialize variable"));
@@ -64,12 +94,13 @@ public class ParserTest {
     @Test
     public void testArrayVariableDeclaration() {
         String source = "package test class Main { var x: [Int] = [1, 2, 3] }";
+        ParseContext context = makeParseContext(source);
 
-        Lexer lexer = new Lexer(source);
+        Lexer lexer = makeLexer(context);
         List<Token> tokens = lexer.scanTokens();
 
         // Parse it
-        Parser parser = new RecursiveDescentParser(tokens);
+        Parser parser = new RecursiveDescentParser(tokens, context);
         VenyFile program = parser.parse();
 
         // Assertions

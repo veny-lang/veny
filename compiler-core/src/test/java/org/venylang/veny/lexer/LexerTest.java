@@ -18,7 +18,10 @@
 package org.venylang.veny.lexer;
 
 import org.junit.jupiter.api.Test;
+import org.venylang.veny.util.source.SrcFilePosMap;
+import org.venylang.veny.util.source.SrcFileSet;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,9 +29,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LexerTest {
 
+
+    private Lexer lexer(String source) {
+        SrcFileSet fileSet = new SrcFileSet();
+
+        // Simple line start index calculator
+        List<Integer> lineOffsets = new ArrayList<>();
+        lineOffsets.add(0); // First line always starts at 0
+        for (int i = 0; i < source.length(); i++) {
+            if (source.charAt(i) == '\n') {
+                lineOffsets.add(i + 1);
+            }
+        }
+        int[] lines = lineOffsets.stream().mapToInt(Integer::intValue).toArray();
+
+        int base = 1;
+        int size = source.length();
+
+        SrcFilePosMap posMap = new SrcFilePosMap(fileSet, "test", base, size, lines);
+        return new Lexer(source, posMap);
+    }
+
     @Test
     public void testVariableDeclaration() {
-        Lexer lexer = new Lexer("var x: Int = 42;");
+        Lexer lexer = lexer("var x: Int = 42;");
         List<Token> tokens = lexer.scanTokens();
 
         assertEquals(TokenType.VAR, tokens.get(0).type());
@@ -42,7 +66,7 @@ public class LexerTest {
 
     @Test
     public void testStringLiteral() {
-        Lexer lexer = new Lexer("var name: String = \"Veny\"");
+        Lexer lexer = lexer("var name: String = \"Veny\"");
         List<Token> tokens = lexer.scanTokens();
 
         assertEquals(TokenType.STRING_LITERAL, tokens.get(5).type());
@@ -51,28 +75,36 @@ public class LexerTest {
 
     @Test
     public void testArrayDeclaration() {
-        Lexer lexer = new Lexer("var x: [Int] = [1, 2, 3]");
+        Lexer lexer = lexer("var x: [Int] = [1, 2, 3]");
         List<Token> actual = lexer.scanTokens();
 
-        List<Token> expected = Arrays.asList(
-                new Token(TokenType.VAR, "var", 1),
-                new Token(TokenType.IDENTIFIER, "x", 1),
-                new Token(TokenType.COLON, ":", 1),
-                new Token(TokenType.LBRACKET, "[", 1),
-                new Token(TokenType.IDENTIFIER, "Int", 1),
-                new Token(TokenType.RBRACKET, "]", 1),
-                new Token(TokenType.ASSIGN, "=", 1),
-                new Token(TokenType.LBRACKET, "[", 1),
-                new Token(TokenType.INT_LITERAL, "1", 1),
-                new Token(TokenType.COMMA, ",", 1),
-                new Token(TokenType.INT_LITERAL, "2", 1),
-                new Token(TokenType.COMMA, ",", 1),
-                new Token(TokenType.INT_LITERAL, "3", 1),
-                new Token(TokenType.RBRACKET, "]", 1),
-                new Token(TokenType.EOF, "", 1)
+        // Just compare the token types and lexemes, not offsets
+        List<TokenType> expectedTypes = Arrays.asList(
+                TokenType.VAR,
+                TokenType.IDENTIFIER,
+                TokenType.COLON,
+                TokenType.LBRACKET,
+                TokenType.IDENTIFIER,
+                TokenType.RBRACKET,
+                TokenType.ASSIGN,
+                TokenType.LBRACKET,
+                TokenType.INT_LITERAL,
+                TokenType.COMMA,
+                TokenType.INT_LITERAL,
+                TokenType.COMMA,
+                TokenType.INT_LITERAL,
+                TokenType.RBRACKET,
+                TokenType.EOF
         );
 
-        assertEquals(expected, actual);
+        List<String> expectedLexemes = Arrays.asList(
+                "var", "x", ":", "[", "Int", "]", "=", "[", "1", ",", "2", ",", "3", "]", ""
+        );
+
+        for (int i = 0; i < expectedTypes.size(); i++) {
+            assertEquals(expectedTypes.get(i), actual.get(i).type(), "Unexpected token type at index " + i);
+            assertEquals(expectedLexemes.get(i), actual.get(i).lexeme(), "Unexpected lexeme at index " + i);
+        }
     }
 
 }
