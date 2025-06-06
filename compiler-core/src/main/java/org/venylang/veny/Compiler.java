@@ -27,6 +27,7 @@ import org.venylang.veny.parser.ast.VenyFile;
 import org.venylang.veny.semantic.SemanticAnalyzer;
 import org.venylang.veny.util.ParsedFile;
 import org.venylang.veny.util.ParsedFileExtractor;
+import org.venylang.veny.util.SourceFile;
 import org.venylang.veny.util.source.SrcFilePosMap;
 import org.venylang.veny.util.source.SrcFileSet;
 
@@ -121,7 +122,7 @@ public class Compiler {
                     System.out.println("Parsed: " + parsedFile);
 
                     try {
-                        String source = Files.readString(path);
+                        String source = SourceFile.of(path).source();
 
                         VenyFile venyFile = parseSingleFile(path, source, fileSet);
                         // Register file with the file set

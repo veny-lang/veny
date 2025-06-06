@@ -224,8 +224,9 @@ public class Lexer {
         }
 
         if (isAtEnd()) {
-            Offset errorOffset = new Offset(srcPosMap.base() + start);
-            System.err.println("Unterminated string at position " + errorOffset.offset());
+            //Offset errorOffset = new Offset(srcPosMap.base() + start);
+            //System.err.println("Unterminated string at position " + errorOffset.offset());
+            addToken(TokenType.ERROR, "Unterminated string at position ");
             return;
         }
 
@@ -340,4 +341,5 @@ public class Lexer {
         Offset offset = new Offset(srcPosMap.base() + start);
         tokens.add(new Token(type, lexeme, offset));
     }
+
 }
