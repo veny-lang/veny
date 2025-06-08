@@ -21,7 +21,6 @@ import org.venylang.veny.util.Visibility;
 
 import java.util.List;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -112,7 +111,7 @@ public record MethodDecl(
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitMethodDecl(this);
+        return visitor.visit(this);
     }
 
     /**

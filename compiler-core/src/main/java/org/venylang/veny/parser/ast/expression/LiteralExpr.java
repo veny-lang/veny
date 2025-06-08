@@ -47,7 +47,7 @@ public record LiteralExpr(Object value) implements Expression {
    */
   @Override
   public <R> R accept(AstVisitor<R> visitor) {
-    return visitor.visitLiteralExpr(this);
+    return visitor.visit(this);
   }
 
   /**

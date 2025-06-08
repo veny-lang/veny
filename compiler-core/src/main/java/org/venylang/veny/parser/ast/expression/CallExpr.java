@@ -23,9 +23,6 @@ import org.venylang.veny.parser.ast.Expression;
 import java.util.List;
 import java.util.Objects;
 
-import java.util.List;
-import java.util.Objects;
-
 /**
  * Represents a method or function call expression in the abstract syntax tree (AST).
  * <p>
@@ -85,7 +82,7 @@ public record CallExpr(Expression callee, List<Expression> arguments) implements
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitCallExpr(this);
+        return visitor.visit(this);
     }
 
     /**

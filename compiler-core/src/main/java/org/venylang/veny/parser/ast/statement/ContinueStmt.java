@@ -45,7 +45,7 @@ public class ContinueStmt implements Statement {
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitContinueStmt(this);
+        return visitor.visit(this);
     }
 
     /**

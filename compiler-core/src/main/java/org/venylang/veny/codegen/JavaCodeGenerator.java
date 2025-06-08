@@ -70,7 +70,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visitProgram(Program node) {
+    public Void visit(Program node) {
         builder.appendRawLine(generateFileHeader("Veny", LocalDate.now().toString()))
                 .appendRawLine(""); // blank line after header
 
@@ -82,7 +82,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visitVenyFile(VenyFile node) {
+    public Void visit(VenyFile node) {
         if (node.packageName() != null && !node.packageName().isEmpty()) {
             builder.appendLine("package " + node.packageName() + ";");
             builder.appendRawLine(""); // blank line after package
@@ -105,7 +105,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visitClassDecl(ClassDecl node) {
+    public Void visit(ClassDecl node) {
         StringBuilder classSignature = new StringBuilder("public class ").append(node.name());
 
         // Handle optional superclass (ext)
@@ -143,12 +143,12 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visitInterfaceDecl(InterfaceDecl node) {
+    public Void visit(InterfaceDecl node) {
         return null;
     }
 
     @Override
-    public Void visitVarDecl(VarDecl node) {
+    public Void visit(VarDecl node) {
         String visibility = node.visibility().toString().toLowerCase();
         String line = visibility + " " + node.typeName() + " " + node.name() + ";";
         builder.appendLine(line);
@@ -156,7 +156,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visitMethodDecl(MethodDecl node) {
+    public Void visit(MethodDecl node) {
         String visibility = node.visibility().toString().toLowerCase();
         StringBuilder params = new StringBuilder();
 
@@ -180,102 +180,102 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visitBlockStmt(BlockStmt node) {
+    public Void visit(BlockStmt node) {
         return null;
     }
 
     @Override
-    public Void visitIfStmt(IfStmt node) {
+    public Void visit(IfStmt node) {
         return null;
     }
 
     @Override
-    public Void visitWhileStmt(WhileStmt node) {
+    public Void visit(WhileStmt node) {
         return null;
     }
 
     @Override
-    public Void visitForStmt(ForStmt node) {
+    public Void visit(ForStmt node) {
         return null;
     }
 
     @Override
-    public Void visitReturnStmt(ReturnStmt node) {
+    public Void visit(ReturnStmt node) {
         return null;
     }
 
     @Override
-    public Void visitExprStmt(ExprStmt node) {
+    public Void visit(ExprStmt node) {
         return null;
     }
 
     @Override
-    public Void visitVarStmt(VarStmt node) {
+    public Void visit(VarStmt node) {
         return null;
     }
 
     @Override
-    public Void visitValStmt(ValStmt node) {
+    public Void visit(ValStmt node) {
         return null;
     }
 
     @Override
-    public Void visitBinaryExpr(BinaryExpr node) {
+    public Void visit(BinaryExpr node) {
         return null;
     }
 
     @Override
-    public Void visitUnaryExpr(UnaryExpr node) {
+    public Void visit(UnaryExpr node) {
         return null;
     }
 
     @Override
-    public Void visitLiteralExpr(LiteralExpr node) {
+    public Void visit(LiteralExpr node) {
         return null;
     }
 
     @Override
-    public Void visitVariableExpr(VariableExpr node) {
+    public Void visit(VariableExpr node) {
         return null;
     }
 
     @Override
-    public Void visitAssignExpr(AssignExpr node) {
+    public Void visit(AssignExpr node) {
         return null;
     }
 
     @Override
-    public Void visitCallExpr(CallExpr node) {
+    public Void visit(CallExpr node) {
         return null;
     }
 
     @Override
-    public Void visitNewExpr(NewExpr node) {
+    public Void visit(NewExpr node) {
         return null;
     }
 
     @Override
-    public Void visitGetExpr(GetExpr node) {
+    public Void visit(GetExpr node) {
         return null;
     }
 
     @Override
-    public Void visitSetExpr(SetExpr node) {
+    public Void visit(SetExpr node) {
         return null;
     }
 
     @Override
-    public Void visitBreakStmt(BreakStmt breakStmt) {
+    public Void visit(BreakStmt breakStmt) {
         return null;
     }
 
     @Override
-    public Void visitContinueStmt(ContinueStmt continueStmt) {
+    public Void visit(ContinueStmt continueStmt) {
         return null;
     }
 
     @Override
-    public Void visitArrayLiteralExpr(ArrayLiteralExpr arrayLiteralExpr) {
+    public Void visit(ArrayLiteralExpr arrayLiteralExpr) {
         return null;
     }
 

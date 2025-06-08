@@ -63,7 +63,7 @@ public class SemanticAnalyzerTest {
         List<Token> tokens = lexer.scanTokens();
         RecursiveDescentParser parser = new RecursiveDescentParser(tokens, context);
         VenyFile parsedUnit = parser.parse();
-        new SemanticAnalyzer().visitProgram(Program.of(parsedUnit));
+        new SemanticAnalyzer().visit(Program.of(parsedUnit));
     }
 
     @Test

@@ -61,7 +61,7 @@ public record WhileStmt(Expression condition, BlockStmt body) implements Stateme
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitWhileStmt(this);
+        return visitor.visit(this);
     }
 
     /**

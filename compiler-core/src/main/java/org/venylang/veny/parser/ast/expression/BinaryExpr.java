@@ -59,7 +59,7 @@ public record BinaryExpr(Expression left, String operator, Expression right) imp
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitBinaryExpr(this);
+        return visitor.visit(this);
     }
 
     /**

@@ -60,7 +60,7 @@ public record ValStmt(String name, String type, Expression initializer) implemen
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitValStmt(this);
+        return visitor.visit(this);
     }
 
     /**

@@ -55,7 +55,7 @@ public record ExprStmt(Expression expression) implements Statement {
    */
   @Override
   public <R> R accept(AstVisitor<R> visitor) {
-    return visitor.visitExprStmt(this);
+    return visitor.visit(this);
   }
 
   /**

@@ -76,7 +76,7 @@ public record ClassDecl(
 
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitClassDecl(this);
+        return visitor.visit(this);
     }
 
     @Override

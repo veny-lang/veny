@@ -57,7 +57,7 @@ public record SetExpr(Expression target, String field, Expression value) impleme
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitSetExpr(this);
+        return visitor.visit(this);
     }
 
     /**

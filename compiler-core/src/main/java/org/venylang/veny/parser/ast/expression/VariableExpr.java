@@ -54,7 +54,7 @@ public record VariableExpr(String name) implements Expression {
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitVariableExpr(this);
+        return visitor.visit(this);
     }
 
     /**

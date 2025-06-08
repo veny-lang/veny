@@ -22,7 +22,6 @@ import org.venylang.veny.parser.ast.Expression;
 
 import java.util.List;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -58,7 +57,7 @@ public record NewExpr(String className, List<Expression> arguments) implements E
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitNewExpr(this);
+        return visitor.visit(this);
     }
 
     /**

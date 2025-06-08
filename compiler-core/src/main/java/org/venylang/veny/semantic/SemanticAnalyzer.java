@@ -109,7 +109,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitProgram(Program node) {
+    public Void visit(Program node) {
         enterScope(globalScope);
         for (VenyFile file : node.files()) {
             file.accept(this);
@@ -120,7 +120,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitVenyFile(VenyFile node) {
+    public Void visit(VenyFile node) {
         for (ClassDecl cls : node.classes()) {
             cls.accept(this);
         }
@@ -129,7 +129,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitClassDecl(ClassDecl node) {
+    public Void visit(ClassDecl node) {
         if (currentScope() != globalScope) {
             throw new IllegalStateException("Classes must be declared in the global scope.");
         }
@@ -154,13 +154,13 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     }
 
     @Override
-    public Void visitInterfaceDecl(InterfaceDecl node) {
+    public Void visit(InterfaceDecl node) {
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitVarDecl(VarDecl node) {
+    public Void visit(VarDecl node) {
         if (currentScope().resolveLocal(node.name()) != null) {
             throw new SemanticException("Variable '" + node.name() + "' is already declared in this scope.");
         }
@@ -180,7 +180,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitMethodDecl(MethodDecl node) {
+    public Void visit(MethodDecl node) {
         Type returnType = resolveType(node.returnType());
         MethodSymbol method = new MethodSymbol(
                 node.name(), returnType,
@@ -206,7 +206,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitBlockStmt(BlockStmt node) {
+    public Void visit(BlockStmt node) {
         for (Statement stmt : node.statements()) {
             stmt.accept(this);
         }
@@ -215,7 +215,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitIfStmt(IfStmt node) {
+    public Void visit(IfStmt node) {
         node.condition().accept(this);
         node.thenBranch().accept(this);
         if (node.elseBranch() != null) {
@@ -226,7 +226,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitWhileStmt(WhileStmt node) {
+    public Void visit(WhileStmt node) {
         node.condition().accept(this);
         node.body().accept(this);
         return null;
@@ -234,7 +234,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitForStmt(ForStmt node) {
+    public Void visit(ForStmt node) {
         node.iterable().accept(this);
         node.body().accept(this);
         return null;
@@ -242,7 +242,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitReturnStmt(ReturnStmt node) {
+    public Void visit(ReturnStmt node) {
         if (node.value() != null) {
             node.value().accept(this);
         }
@@ -251,40 +251,40 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitExprStmt(ExprStmt node) {
+    public Void visit(ExprStmt node) {
         node.expression().accept(this);
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitVarStmt(VarStmt node) {
+    public Void visit(VarStmt node) {
         return node.initializer().accept(this);
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitValStmt(ValStmt node) {
+    public Void visit(ValStmt node) {
         return node.initializer().accept(this);
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitBreakStmt(BreakStmt node) {
+    public Void visit(BreakStmt node) {
         // Optional: Validate we're inside a loop
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitContinueStmt(ContinueStmt node) {
+    public Void visit(ContinueStmt node) {
         // Optional: Validate we're inside a loop
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitArrayLiteralExpr(ArrayLiteralExpr node) {
+    public Void visit(ArrayLiteralExpr node) {
         return null;
     }
 
@@ -292,7 +292,7 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitBinaryExpr(BinaryExpr node) {
+    public Void visit(BinaryExpr node) {
         node.left().accept(this);
         node.right().accept(this);
         return null;
@@ -300,20 +300,20 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitUnaryExpr(UnaryExpr node) {
+    public Void visit(UnaryExpr node) {
         node.operand().accept(this);
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitLiteralExpr(LiteralExpr node) {
+    public Void visit(LiteralExpr node) {
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitVariableExpr(VariableExpr node) {
+    public Void visit(VariableExpr node) {
         Symbol symbol = currentScope().resolve(node.name());
         if (symbol == null) {
             error("Undefined variable: " + node.name());
@@ -325,14 +325,14 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitAssignExpr(AssignExpr node) {
+    public Void visit(AssignExpr node) {
         // TODO: Analyze target and value expressions
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitCallExpr(CallExpr node) {
+    public Void visit(CallExpr node) {
         node.callee().accept(this);
         for (Expression arg : node.arguments()) {
             arg.accept(this);
@@ -342,21 +342,21 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     /** {@inheritDoc} */
     @Override
-    public Void visitNewExpr(NewExpr node) {
+    public Void visit(NewExpr node) {
         // TODO: Type/class constructor check
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitGetExpr(GetExpr node) {
+    public Void visit(GetExpr node) {
         node.target().accept(this);
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Void visitSetExpr(SetExpr node) {
+    public Void visit(SetExpr node) {
         node.target().accept(this);
         node.value().accept(this);
         return null;

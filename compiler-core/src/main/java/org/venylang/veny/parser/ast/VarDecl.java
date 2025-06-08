@@ -66,7 +66,7 @@ public record VarDecl(
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitVarDecl(this);
+        return visitor.visit(this);
     }
 
     /**

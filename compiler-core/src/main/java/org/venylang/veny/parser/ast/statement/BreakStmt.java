@@ -36,7 +36,7 @@ public class BreakStmt implements Statement {
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitBreakStmt(this);
+        return visitor.visit(this);
     }
 
     /**

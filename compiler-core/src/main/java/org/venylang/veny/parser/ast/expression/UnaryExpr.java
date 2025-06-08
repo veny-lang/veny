@@ -56,7 +56,7 @@ public record UnaryExpr(String operator, Expression operand) implements Expressi
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitUnaryExpr(this);
+        return visitor.visit(this);
     }
 
     /**

@@ -40,7 +40,7 @@ public interface AstVisitor<R> {
      * @param node the Program node
      * @return result of visiting
      */
-    R visitProgram(Program node);
+    R visit(Program node);
 
     /**
      * Visits a single Veny source file.
@@ -48,7 +48,7 @@ public interface AstVisitor<R> {
      * @param node the VenyFile node
      * @return result of visiting
      */
-    R visitVenyFile(VenyFile node);
+    R visit(VenyFile node);
 
     /**
      * Visits a class declaration.
@@ -56,7 +56,7 @@ public interface AstVisitor<R> {
      * @param node the ClassDecl node
      * @return result of visiting
      */
-    R visitClassDecl(ClassDecl node);
+    R visit(ClassDecl node);
 
     /**
      * Visits an interface declaration.
@@ -64,7 +64,7 @@ public interface AstVisitor<R> {
      * @param node the InterfaceDecl node
      * @return result of visiting
      */
-    R visitInterfaceDecl(InterfaceDecl node);
+    R visit(InterfaceDecl node);
 
     /**
      * Visits a field or variable declaration in a class.
@@ -72,7 +72,7 @@ public interface AstVisitor<R> {
      * @param node the VarDecl node
      * @return result of visiting
      */
-    R visitVarDecl(VarDecl node);
+    R visit(VarDecl node);
 
     /**
      * Visits a method declaration in a class.
@@ -80,31 +80,31 @@ public interface AstVisitor<R> {
      * @param node the MethodDecl node
      * @return result of visiting
      */
-    R visitMethodDecl(MethodDecl node);
+    R visit(MethodDecl node);
 
     // Statements
 
-    R visitBlockStmt(BlockStmt node);
-    R visitIfStmt(IfStmt node);
-    R visitWhileStmt(WhileStmt node);
-    R visitForStmt(ForStmt node);
-    R visitReturnStmt(ReturnStmt node);
-    R visitExprStmt(ExprStmt node);
-    R visitVarStmt(VarStmt node);
-    R visitValStmt(ValStmt node);
-    R visitBreakStmt(BreakStmt node);
-    R visitContinueStmt(ContinueStmt node);
+    R visit(BlockStmt node);
+    R visit(IfStmt node);
+    R visit(WhileStmt node);
+    R visit(ForStmt node);
+    R visit(ReturnStmt node);
+    R visit(ExprStmt node);
+    R visit(VarStmt node);
+    R visit(ValStmt node);
+    R visit(BreakStmt node);
+    R visit(ContinueStmt node);
 
     // Expressions
 
-    R visitBinaryExpr(BinaryExpr node);
-    R visitUnaryExpr(UnaryExpr node);
-    R visitLiteralExpr(LiteralExpr node);
-    R visitVariableExpr(VariableExpr node);
-    R visitAssignExpr(AssignExpr node);
-    R visitCallExpr(CallExpr node);
-    R visitNewExpr(NewExpr node);
-    R visitGetExpr(GetExpr node);
-    R visitSetExpr(SetExpr node);
-    R visitArrayLiteralExpr(ArrayLiteralExpr node);
+    R visit(BinaryExpr node);
+    R visit(UnaryExpr node);
+    R visit(LiteralExpr node);
+    R visit(VariableExpr node);
+    R visit(AssignExpr node);
+    R visit(CallExpr node);
+    R visit(NewExpr node);
+    R visit(GetExpr node);
+    R visit(SetExpr node);
+    R visit(ArrayLiteralExpr node);
 }

@@ -60,7 +60,7 @@ public record ForStmt(String variable, Expression iterable, BlockStmt body) impl
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitForStmt(this);
+        return visitor.visit(this);
     }
 
     /**

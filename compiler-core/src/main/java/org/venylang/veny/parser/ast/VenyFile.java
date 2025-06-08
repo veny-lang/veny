@@ -34,7 +34,7 @@ public record VenyFile(
 
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitVenyFile(this);
+        return visitor.visit(this);
     }
 
     @Override

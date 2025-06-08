@@ -69,7 +69,7 @@ public record InterfaceDecl(
 
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitInterfaceDecl(this);
+        return visitor.visit(this);
     }
 
     @Override

@@ -57,7 +57,7 @@ public record GetExpr(Expression target, String field) implements Expression {
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitGetExpr(this);
+        return visitor.visit(this);
     }
 
     /**

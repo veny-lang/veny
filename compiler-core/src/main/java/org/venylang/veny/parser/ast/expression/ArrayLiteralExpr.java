@@ -22,8 +22,6 @@ import java.util.List;
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
-import java.util.List;
-
 /**
  * Represents an array literal expression in the abstract syntax tree (AST).
  * <p>
@@ -54,7 +52,7 @@ public record ArrayLiteralExpr(List<Expression> elements) implements Expression 
      */
     @Override
     public <R> R accept(AstVisitor<R> visitor) {
-        return visitor.visitArrayLiteralExpr(this);
+        return visitor.visit(this);
     }
 
     /**

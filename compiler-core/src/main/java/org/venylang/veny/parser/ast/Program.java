@@ -44,7 +44,7 @@ public record Program(List<VenyFile> files) implements AstNode {
 
   @Override
   public <R> R accept(AstVisitor<R> visitor) {
-    return visitor.visitProgram(this);
+    return visitor.visit(this);
   }
 
   @Override
