@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * Represents a hierarchical symbol table used for both global and nested scopes.
- * The global scope is simply the root symbol table (i.e. has no parent).
+ * The global scope is simply the root symbol table (i.e., has no parent).
  */
 public class SymbolTable {
 

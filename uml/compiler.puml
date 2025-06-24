@@ -1,0 +1,38 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+package org.venylang.veny {
+    class Compiler {
+        - Logger logger
+        - FileSystem fileSystem
+        - Parser parser
+        - SemanticAnalyzer semanticAnalyzer
+        - CodeGenerator codeGenerator
+        + Compiler(FileSystem)
+        + compile(String sourceFile): void
+    }
+
+    class Logger
+    class FileSystem
+    class Parser {
+        + parse(File): AST
+    }
+    class SemanticAnalyzer {
+        + analyze(AST): SemanticResult
+    }
+    class CodeGenerator {
+        + generate(SemanticResult): void
+    }
+    class AST
+    class SemanticResult
+
+    Compiler --> Logger
+    Compiler --> FileSystem
+    Compiler --> Parser
+    Compiler --> SemanticAnalyzer
+    Compiler --> CodeGenerator
+    Parser --> AST
+    SemanticAnalyzer --> SemanticResult
+}
+
+@enduml

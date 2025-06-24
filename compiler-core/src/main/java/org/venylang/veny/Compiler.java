@@ -43,6 +43,7 @@ import java.util.Optional;
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Compiler {
+    private static final String VENY_EXTENSION = ".veny";
     private Path workingDir;
 
     public static void main(String[] args) {
@@ -79,7 +80,7 @@ public class Compiler {
         List<Path> venyFiles = new ArrayList<>();
         try {
             Files.walk(dir)
-                .filter(p -> p.toString().endsWith(".veny"))
+                .filter(p -> p.toString().endsWith(VENY_EXTENSION))
                 .forEach(venyFiles::add);
         } catch (IOException e) {
             System.err.println("Error walking directory: " + dir);

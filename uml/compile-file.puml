@@ -1,0 +1,21 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+actor User
+User -> Compiler : compile(sourceFile)
+Compiler -> FileSystem : readFile(sourceFile)
+FileSystem --> Compiler : File
+
+Compiler -> Parser : parse(File)
+Parser --> Compiler : AST
+
+Compiler -> SemanticAnalyzer : analyze(AST)
+SemanticAnalyzer --> Compiler : SemanticResult
+
+Compiler -> CodeGenerator : generate(SemanticResult)
+CodeGenerator --> Compiler : void
+
+Compiler --> User : Compilation complete
+@enduml

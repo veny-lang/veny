@@ -32,7 +32,6 @@ import java.util.Optional;
  */
 public class ParsedFileExtractor {
 
-    private static final String VENY_EXTENSION = ".vn";
     private static final String VENY_PACKAGE_PREFIX = "package ";
     private static final String VENY_IMPORT_PREFIX = "import ";
 
