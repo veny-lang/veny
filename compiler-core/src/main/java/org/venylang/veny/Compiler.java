@@ -25,6 +25,7 @@ import org.venylang.veny.parser.RecursiveDescentParser;
 import org.venylang.veny.parser.ast.Program;
 import org.venylang.veny.parser.ast.VenyFile;
 import org.venylang.veny.semantic.SemanticAnalyzer;
+import org.venylang.veny.util.FileCollector;
 import org.venylang.veny.util.ParsedFile;
 import org.venylang.veny.util.ParsedFileExtractor;
 import org.venylang.veny.util.SourceFile;
@@ -43,7 +44,6 @@ import java.util.Optional;
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Compiler {
-    private static final String VENY_EXTENSION = ".veny";
     private Path workingDir;
 
     public static void main(String[] args) {
@@ -63,29 +63,13 @@ public class Compiler {
 
         System.out.println("Working directory: " + workingDir);
 
-        List<Path> venyFiles = collectVenyFiles(workingDir);
-        if (venyFiles.isEmpty()) {
+        FileCollector collector = FileCollector.of(workingDir);
+        if (collector.isEmpty()) {
             System.out.println("No .veny files found in: " + workingDir);
             return;
         }
 
-        compile(venyFiles);
-        /*for (Path file : venyFiles) {
-            System.out.println("Compiling: " + workingDir.relativize(file));
-            compileFile(file);
-        }*/
-    }
-
-    private List<Path> collectVenyFiles(Path dir) {
-        List<Path> venyFiles = new ArrayList<>();
-        try {
-            Files.walk(dir)
-                .filter(p -> p.toString().endsWith(VENY_EXTENSION))
-                .forEach(venyFiles::add);
-        } catch (IOException e) {
-            System.err.println("Error walking directory: " + dir);
-        }
-        return venyFiles;
+        compile(collector.stream().toList());
     }
 
     private void compile(List<Path> filesToCompile) {
