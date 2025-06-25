@@ -17,29 +17,11 @@
 
 package org.venylang.veny;
 
-import org.venylang.veny.codegen.JavaCodeGenerator;
-import org.venylang.veny.context.ParseContext;
-import org.venylang.veny.lexer.Lexer;
-import org.venylang.veny.lexer.Token;
-import org.venylang.veny.parser.RecursiveDescentParser;
-import org.venylang.veny.parser.ast.Program;
-import org.venylang.veny.parser.ast.VenyFile;
-import org.venylang.veny.semantic.SemanticAnalyzer;
+import org.venylang.veny.context.CompilerContext;
 import org.venylang.veny.util.FileCollector;
-import org.venylang.veny.util.ParsedFile;
-import org.venylang.veny.util.ParsedFileExtractor;
-import org.venylang.veny.util.SourceFile;
-import org.venylang.veny.util.source.SrcFilePosMap;
-import org.venylang.veny.util.source.SrcFileSet;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
@@ -63,16 +45,29 @@ public class Compiler {
 
         System.out.println("Working directory: " + workingDir);
 
+        CompilerContext compilerContext = new CompilerContext(workingDir);
+        CompilerPipeline pipeline = new CompilerPipeline(compilerContext);
+
+        // 1️⃣ Compile stdlib (from a known location)
+        //Path stdlibDir = Path.of("resources/stdlib"); // or wherever you keep stdlib files
+        //compileStdlib(stdlibDir, pipeline);
+
+        /*if (projectContext.errorReporter().hasErrors()) {
+            System.err.println("Stdlib compilation failed. Aborting.");
+            return;
+        }*/
+
+        // 2️⃣ Compile user project
         FileCollector collector = FileCollector.of(workingDir);
         if (collector.isEmpty()) {
             System.out.println("No .veny files found in: " + workingDir);
             return;
         }
 
-        compile(collector.stream().toList());
+        pipeline.compile(collector.stream().toList());
     }
 
-    private void compile(List<Path> filesToCompile) {
+    /** private void compile(List<Path> filesToCompile) {
         Program program = new Program(parseVenyFiles(filesToCompile));
         System.out.println("AST: " + program);
 
@@ -85,7 +80,7 @@ public class Compiler {
         String javaCode = JavaCodeGenerator.of(program).getCode();
         System.out.println("Generated Java code:");
         System.out.println(javaCode);
-    }        //String javaCode = generator.visitProgram(program);
+    } */       //String javaCode = generator.visitProgram(program);
 
 
     /**
@@ -94,7 +89,7 @@ public class Compiler {
      * @param filesToCompile paths to Veny source files
      * @return a list of parsed VenyFile AST nodes
      */
-    public List<VenyFile> parseVenyFiles(List<Path> filesToCompile) {
+    /** public List<VenyFile> parseVenyFiles(List<Path> filesToCompile) {
         List<VenyFile> allFiles = new ArrayList<>();
         SrcFileSet fileSet = new SrcFileSet();
 
@@ -111,10 +106,10 @@ public class Compiler {
 
                         VenyFile venyFile = parseSingleFile(path, source, fileSet);
                         // Register file with the file set
-                        /*SrcFilePosMap file = fileSet.addFile(path.toString(), source.length(), )
+                        /** SrcFilePosMap file = fileSet.addFile(path.toString(), source.length(), )
                         List<Token> tokens = new Lexer(source).scanTokens();
                         VenyFile venyFile = new RecursiveDescentParser(tokens).parse();*/
-                        allFiles.add(venyFile);
+                        /** allFiles.add(venyFile);
                     } catch (IOException ex) {
                         System.err.println("Error reading file during compilation: " + workingDir.relativize(path));
                         ex.printStackTrace();
@@ -128,9 +123,9 @@ public class Compiler {
         });
 
         return allFiles;
-    }
+    }*/
 
-    private void validatePackagePath(Path filePath, String packageName) {
+    /** private void validatePackagePath(Path filePath, String packageName) {
         Path relative = workingDir.relativize(filePath);
         String expectedDir = (relative.getParent() != null) ? relative.getParent().toString() : "";
         if (!expectedDir.replace(File.separatorChar, '.').equals(packageName)) {
@@ -157,34 +152,17 @@ public class Compiler {
         // Tokenize and parse
         List<Token> tokens = new Lexer(source, parseContext.srcFilePosMap()).scanTokens();
         return new RecursiveDescentParser(tokens, parseContext).parse();
-    }
+    }*/
 
-    private boolean packageMatchesPath(Path filePath, String packageName) {
-        // Example: filePath = src/app/core/engine.veny
-        //          packageName = app.core
-
-        // Normalize: ["app", "core"]
-        List<String> packageParts = List.of(packageName.split("\\."));
-
-        // Normalize the file path, extract the last N parts (before the file name)
-        Path parent = workingDir.relativize(filePath).getParent();
-        if (parent == null) return false;
-
-        List<String> pathParts = new ArrayList<>();
-        for (Path part : parent) {
-            pathParts.add(part.toString());
+    private void compileStdlib(Path stdlibDir, CompilerPipeline pipeline) {
+        System.out.println("Compiling standard library from: " + stdlibDir);
+        FileCollector collector = FileCollector.of(stdlibDir);
+        if (collector.isEmpty()) {
+            System.err.println("No stdlib files found in: " + stdlibDir);
+            return;
         }
 
-        // Compare last N path parts with package parts
-        int offset = pathParts.size() - packageParts.size();
-        if (offset < 0) return false;
-
-        for (int i = 0; i < packageParts.size(); i++) {
-            if (!packageParts.get(i).equals(pathParts.get(offset + i))) {
-                return false;
-            }
-        }
-        return true;
+        pipeline.compile(collector.stream().toList());
     }
 
     private void printUsage() {

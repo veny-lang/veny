@@ -17,27 +17,28 @@
 
 package org.venylang.veny.context;
 
+import org.venylang.veny.parser.ast.VenyFile;
 import org.venylang.veny.symbols.SymbolTable;
-import org.venylang.veny.parser.ast.AstNode;
+//import org.venylang.veny.parser.ast.AstNode;
 
 /**
  * Represents per-file compiler state during semantic analysis and code generation.
  */
-public class CompilationContext {
+public class FileCompilationContext {
 
-    private final ProjectContext projectContext;
+    private final CompilerContext compilerContext;
     private final ParseContext parseContext;
     private final SymbolTable localSymbols;
-    private AstNode ast;
+    private VenyFile ast;
 
-    public CompilationContext(ProjectContext projectContext, ParseContext parseContext) {
-        this.projectContext = projectContext;
+    public FileCompilationContext(CompilerContext compilerContext, ParseContext parseContext) {
+        this.compilerContext = compilerContext;
         this.parseContext = parseContext;
         this.localSymbols = new SymbolTable(); // local (per-file) scope
     }
 
-    public ProjectContext getProjectContext() {
-        return projectContext;
+    public CompilerContext getProjectContext() {
+        return compilerContext;
     }
 
     public ParseContext getParseContext() {
@@ -48,11 +49,11 @@ public class CompilationContext {
         return localSymbols;
     }
 
-    public AstNode getAST() {
+    public VenyFile getAST() {
         return ast;
     }
 
-    public void setAST(AstNode ast) {
+    public void setAST(VenyFile ast) {
         this.ast = ast;
     }
 

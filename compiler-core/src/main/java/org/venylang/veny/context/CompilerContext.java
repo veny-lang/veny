@@ -25,13 +25,13 @@ import java.nio.file.Path;
 /**
  * Project-wide compiler context. Holds shared state across all files being compiled.
  */
-public class ProjectContext {
+public class CompilerContext {
 
     private final Path workingDirectory;
     private final ErrorReporter errorReporter;
     private final SymbolTable globalSymbols;
 
-    public ProjectContext(Path workingDirectory) {
+    public CompilerContext(Path workingDirectory) {
         this.workingDirectory = workingDirectory;
         this.errorReporter = new ErrorReporter();
         this.globalSymbols = new SymbolTable();
