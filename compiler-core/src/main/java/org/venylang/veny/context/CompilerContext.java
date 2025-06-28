@@ -17,7 +17,7 @@
 
 package org.venylang.veny.context;
 
-import org.venylang.veny.symbols.SymbolTable;
+import org.venylang.veny.semantic.SymbolTable;
 import org.venylang.veny.util.ErrorReporter;
 
 import java.nio.file.Path;

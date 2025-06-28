@@ -18,6 +18,8 @@
 package org.venylang.veny;
 
 import org.venylang.veny.context.CompilerContext;
+import org.venylang.veny.imports.ImportResolver;
+import org.venylang.veny.imports.IterativeImportResolver;
 import org.venylang.veny.util.FileCollector;
 
 import java.nio.file.Path;
@@ -46,7 +48,9 @@ public class Compiler {
         System.out.println("Working directory: " + workingDir);
 
         CompilerContext compilerContext = new CompilerContext(workingDir);
-        CompilerPipeline pipeline = new CompilerPipeline(compilerContext);
+        ImportResolver resolver = new IterativeImportResolver(
+                compilerContext.workingDirectory(), compilerContext.globalSymbols());
+        CompilerPipeline pipeline = new CompilerPipeline(compilerContext, resolver);
 
         // 1️⃣ Compile stdlib (from a known location)
         //Path stdlibDir = Path.of("resources/stdlib"); // or wherever you keep stdlib files

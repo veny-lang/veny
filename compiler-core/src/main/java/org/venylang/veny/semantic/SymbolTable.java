@@ -15,7 +15,7 @@
  *
  */
 
-package org.venylang.veny.symbols;
+package org.venylang.veny.semantic;
 
 import java.util.HashMap;
 import java.util.Map;

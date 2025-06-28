@@ -15,20 +15,10 @@
  *
  */
 
-package org.venylang.veny.symbols;
+package org.venylang.veny.imports;
 
-/**
- * Represents a generic symbol in the symbol table.
- */
-public class Symbol {
-    private final String name;
+import java.util.List;
 
-    public Symbol(String name) {
-        this.name = name;
-    }
-
-    public String name() {
-        return name;
-    }
+public interface ImportResolver {
+    void resolveImports(List<ImportRecord> rootImports) throws ImportResolutionException;
 }
-

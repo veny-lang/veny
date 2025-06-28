@@ -18,13 +18,13 @@
 package org.venylang.veny.context;
 
 import org.venylang.veny.parser.ast.VenyFile;
-import org.venylang.veny.symbols.SymbolTable;
-//import org.venylang.veny.parser.ast.AstNode;
+import org.venylang.veny.semantic.SymbolTable;
 
 /**
  * Represents per-file compiler state during semantic analysis and code generation.
  */
 public class FileCompilationContext {
+//import org.venylang.veny.parser.ast.AstNode;
 
     private final CompilerContext compilerContext;
     private final ParseContext parseContext;
