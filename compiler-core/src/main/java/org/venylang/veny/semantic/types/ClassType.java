@@ -42,7 +42,7 @@ public class ClassType extends Type {
 
     @Override
     public boolean isAssignableFrom(Type other) {
-        if (other.equals(PrimitiveType.NULL)) {
+        if (other.equals(BuiltinType.NULL)) {
             return true; // null can be assigned to any object/class type
         }
 

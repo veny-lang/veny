@@ -234,7 +234,7 @@ public class Lexer {
         String value = source.substring(start + 1, current - 1); // Exclude quotes
 
         Offset tokenOffset = new Offset(srcPosMap.base() + start);
-        tokens.add(new Token(TokenType.STRING_LITERAL, value, tokenOffset));
+        tokens.add(new Token(TokenType.TEST_LITERAL, value, tokenOffset));
     }
 
     /**

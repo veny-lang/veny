@@ -53,7 +53,7 @@ public class Compiler {
         CompilerPipeline pipeline = new CompilerPipeline(compilerContext, resolver);
 
         // 1️⃣ Compile stdlib (from a known location)
-        //Path stdlibDir = Path.of("resources/stdlib"); // or wherever you keep stdlib files
+        //Path stdlibDir = Paths.get("resources/veny"); // or wherever you keep stdlib files
         //compileStdlib(stdlibDir, pipeline);
 
         /*if (projectContext.errorReporter().hasErrors()) {

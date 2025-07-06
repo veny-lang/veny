@@ -24,7 +24,7 @@ public enum TokenType {
     PUB, PRI, IN,
 
     // Identifiers and literals
-    IDENTIFIER, INT_LITERAL, FLOAT_LITERAL, STRING_LITERAL,
+    IDENTIFIER, INT_LITERAL, FLOAT_LITERAL, TEST_LITERAL,
 
     // Symbols
     PLUS, // +

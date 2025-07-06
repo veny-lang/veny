@@ -20,13 +20,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>stdlib</artifactId>
-    <packaging>jar</packaging>
     <parent>
         <groupId>org.venylang</groupId>
         <artifactId>veny</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
+
+    <artifactId>runtime</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -34,15 +34,4 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/veny</directory>
-                <targetPath>veny</targetPath>
-                <includes>
-                    <include>**/*.veny</include>
-                </includes>
-            </resource>
-        </resources>
-    </build>
 </project>

@@ -1,0 +1,6 @@
+package veny.lang
+
+interface Console {
+    print(msg: String): void
+    println(msg: String): void
+}

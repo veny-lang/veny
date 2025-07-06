@@ -16,5 +16,6 @@
         <module>veny-cli</module>
         <module>stdlib</module>
         <module>veny-cli-picocli</module>
+        <module>runtime</module>
     </modules>
 </project>

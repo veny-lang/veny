@@ -18,6 +18,7 @@
 package org.venylang.veny.util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,82 +26,101 @@ import java.nio.file.Path;
 
 /**
  * Represents a source file to be compiled by the Veny compiler.
- * <p>
- * This class loads the contents of a file and verifies that it is valid UTF-8
- * without a Byte Order Mark (BOM). It stores both the file name and the
- * decoded source code string.
+ *
+ * <p>This class encapsulates the file name and its decoded UTF-8 source contents.
+ * It validates that the content is well-formed UTF-8 and does not include a Byte Order Mark (BOM)
+ * or replacement characters (�), ensuring the source code is safe to compile.</p>
  */
 public class SourceFile {
     private final String filename;
     private final String source;
 
     /**
-     * Creates a new {@code SourceFile} instance by reading and validating the file at the given path.
+     * Creates a {@code SourceFile} from a file on disk.
+     * The file is read as UTF-8 and validated for encoding correctness.
      *
      * @param path the path to the source file
-     * @return a {@code SourceFile} representing the file at the given path
+     * @return a {@code SourceFile} instance with the decoded source
      * @throws IOException if the file cannot be read or is not valid UTF-8
      */
     public static SourceFile of(Path path) throws IOException {
-        return new SourceFile(path);
+        return new SourceFile(path.toString(), Files.readAllBytes(path));
     }
 
     /**
-     * Constructs a SourceFile by reading and validating the UTF-8 contents
-     * of the given path.
+     * Creates a {@code SourceFile} from an input stream.
+     * Intended for use when reading source files from packaged resources such as JARs.
+     * The stream is fully read, decoded as UTF-8, and validated.
      *
-     * @param path the path to the source file
-     * @throws IOException if the file cannot be read, is not valid UTF-8,
-     *                     or contains a UTF-8 BOM or replacement characters
+     * @param filename a name or identifier for the source (used for diagnostics)
+     * @param stream   the input stream to read the source from
+     * @return a {@code SourceFile} instance with the decoded source
+     * @throws IOException if the stream cannot be read or is not valid UTF-8
      */
-    public SourceFile(Path path) throws IOException {
-        this.filename = path.toString() ;
-        this.source = readUtf8File(path);
+    public static SourceFile of(String filename, InputStream stream) throws IOException {
+        return new SourceFile(filename, stream.readAllBytes());
     }
 
     /**
-     * Returns the file name or path of this source file.
+     * Creates a {@code SourceFile} from an already-decoded in-memory string.
+     * This method assumes the source is valid UTF-8 and skips validation.
+     * Use this only if you are sure the string was correctly decoded.
      *
-     * @return the file name as a string
+     * @param filename a name or identifier for the source
+     * @param source   the source code as a string
+     * @return a {@code SourceFile} instance
+     */
+    public static SourceFile of(String filename, String source) throws IOException {
+        return new SourceFile(filename, source.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private SourceFile(String filename, byte[] bytes) throws IOException {
+        this.filename = filename;
+        this.source = decodeUtf8Bytes(filename, bytes);
+    }
+
+    /**
+     * Returns the name or path of the source file.
+     *
+     * @return the file name or identifier
      */
     public String filename() {
         return filename;
     }
 
     /**
-     * Returns the contents of the source file as a string.
+     * Returns the decoded source code as a string.
      *
-     * @return the source code in UTF-8
+     * @return the UTF-8 decoded source code
      */
-
     public String source() {
         return source;
     }
 
     /**
-     * Reads the contents of the specified file, ensuring it is valid UTF-8,
-     * does not contain a Byte Order Mark (BOM), and has no invalid characters.
+     * Decodes the given byte array as UTF-8, checking for invalid input.
+     * This ensures no BOM or invalid replacement characters are present.
      *
-     * @param path the path to the file
-     * @return the decoded UTF-8 content of the file
-     * @throws IOException if the file is not valid UTF-8 or contains disallowed characters
+     * @param filename the logical name of the source (for error reporting)
+     * @param bytes    the raw UTF-8 bytes
+     * @return the decoded string
+     * @throws IOException if the byte array contains invalid UTF-8
      */
-    private String readUtf8File(Path path) throws IOException {
+    private String decodeUtf8Bytes(String filename, byte[] bytes) throws IOException {
         try {
-            byte[] bytes = Files.readAllBytes(path);
             String content = new String(bytes, StandardCharsets.UTF_8);
 
             if (!content.isEmpty() && content.charAt(0) == '\uFEFF') {
-                throw new IOException("UTF-8 BOM is not allowed: " + path);
+                throw new IOException("UTF-8 BOM is not allowed: " + filename);
             }
 
             if (content.contains("\uFFFD")) {
-                throw new IOException("Invalid UTF-8 characters in file: " + path);
+                throw new IOException("Invalid UTF-8 characters in file: " + filename);
             }
 
             return content;
         } catch (MalformedInputException e) {
-            throw new IOException("File is not valid UTF-8: " + path, e);
+            throw new IOException("File is not valid UTF-8: " + filename, e);
         }
     }
 }

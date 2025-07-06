@@ -17,19 +17,19 @@ class MathUtils {
     }
 
     pri logUsage(): void {
-        System.print("MathUtils used " + usageCount + " times")
+        Console.print("MathUtils used " + usageCount + " times")
     }
 }
 
 class User {
-    pub val name: String = "Alice"
+    pub val name: Text = "Alice"
     var age: Int = 0
     pri val id: Int = 0
 
     // New: List of login timestamps (placeholder)
-    var loginTimestamps: [String] = []
+    var loginTimestamps: [Text] = []
 
-    constructor(name: String, age: Int, id: Int): void {
+    constructor(name: Text, age: Int, id: Int): void {
         this.name = name
         this.age = age
         this.id = id
@@ -77,13 +77,13 @@ class Program {
 }
 
 class Greeter {
-    pub val greeting: String = "Hello"
+    pub val greeting: Text = "Hello"
     var count: Int = 0
 
     // New: History of greeted names
-    var greetedNames: [String] = []
+    var greetedNames: [Text] = []
 
-    greet(name: String): void {
+    greet(name: [Text]): void {
         System.print(greeting + ", " + name)
         count = count + 1
         // Append to history
@@ -108,4 +108,9 @@ interface Pet {
 interface Movable impl Updatable, Renderable {
     move(x: Int, y: Int): Void
     stop(): Void
+}
+
+interface Console {
+    print(msg: Text): void
+    println(msg: Text): void
 }

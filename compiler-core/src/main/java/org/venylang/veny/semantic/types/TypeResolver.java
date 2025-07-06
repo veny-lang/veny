@@ -30,9 +30,10 @@ public final class TypeResolver {
     static {
         builtins.put("Int", BuiltinType.INT);
         builtins.put("Float", BuiltinType.FLOAT);
-        builtins.put("String", BuiltinType.STRING);
+        builtins.put("Text", BuiltinType.TEXT);
         builtins.put("Bool", BuiltinType.BOOL);
         builtins.put("void", BuiltinType.VOID);
+        builtins.put("null", BuiltinType.NULL);
     }
 
     /**

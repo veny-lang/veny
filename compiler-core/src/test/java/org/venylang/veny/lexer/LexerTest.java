@@ -69,7 +69,7 @@ public class LexerTest {
         Lexer lexer = lexer("var name: String = \"Veny\"");
         List<Token> tokens = lexer.scanTokens();
 
-        assertEquals(TokenType.STRING_LITERAL, tokens.get(5).type());
+        assertEquals(TokenType.TEST_LITERAL, tokens.get(5).type());
         assertEquals("Veny", tokens.get(5).lexeme());
     }
 

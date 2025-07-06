@@ -317,7 +317,15 @@ public class RecursiveDescentParser implements Parser {
         while (peek().type() != TokenType.RPAREN) {
             String paramName = expect(TokenType.IDENTIFIER).lexeme();
             expect(TokenType.COLON);
-            String paramType = expect(TokenType.IDENTIFIER).lexeme();
+            String paramType;
+            if (match(TokenType.LBRACKET)) { // check for '['
+                String elementType = expect(TokenType.IDENTIFIER).lexeme();
+                expect(TokenType.RBRACKET); // expect ']'
+                paramType = "[" + elementType + "]";
+            } else {
+                paramType =  expect(TokenType.IDENTIFIER).lexeme();
+            }
+            //String paramType = expect(TokenType.IDENTIFIER).lexeme();
             parameters.add(new MethodDecl.Parameter(paramName, paramType));
             if (peek().type() != TokenType.RPAREN) expect(TokenType.COMMA);
         }
@@ -701,7 +709,7 @@ public class RecursiveDescentParser implements Parser {
         }
 
         Token token = expectAny(TokenType.IDENTIFIER, TokenType.INT_LITERAL,
-                TokenType.STRING_LITERAL, TokenType.FLOAT_LITERAL, TokenType.TRUE, TokenType.FALSE);
+                TokenType.TEST_LITERAL, TokenType.FLOAT_LITERAL, TokenType.TRUE, TokenType.FALSE);
 
         Expression expr;
 
@@ -728,7 +736,7 @@ public class RecursiveDescentParser implements Parser {
             case FLOAT_LITERAL:
                 expr = new LiteralExpr(Float.parseFloat(token.lexeme()));
                 break;
-            case STRING_LITERAL:
+            case TEST_LITERAL:
                 expr = new LiteralExpr(token.lexeme());
                 break;
             case TRUE:
@@ -813,7 +821,7 @@ public class RecursiveDescentParser implements Parser {
         Token literal = consume();
         if (literal.type() == TokenType.INT_LITERAL) {
             return new LiteralExpr(Integer.parseInt(literal.lexeme()));
-        } else if (literal.type() == TokenType.STRING_LITERAL) {
+        } else if (literal.type() == TokenType.TEST_LITERAL) {
             return new LiteralExpr(literal.lexeme());
         }
         throw new ParseException("Invalid literal: " + literal);

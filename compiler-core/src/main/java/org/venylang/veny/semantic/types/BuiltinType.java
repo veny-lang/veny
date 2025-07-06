@@ -26,9 +26,10 @@ public final class BuiltinType extends Type {
 
     public static final BuiltinType INT = new BuiltinType("Int");
     public static final BuiltinType FLOAT = new BuiltinType("Float");
-    public static final BuiltinType STRING = new BuiltinType("String");
+    public static final BuiltinType TEXT = new BuiltinType("Text");
     public static final BuiltinType BOOL = new BuiltinType("Bool");
     public static final BuiltinType VOID = new BuiltinType("void");
+    public static final BuiltinType NULL = new BuiltinType("null");
 
     private final String name;
 
@@ -43,6 +44,8 @@ public final class BuiltinType extends Type {
 
     @Override
     public boolean isAssignableFrom(Type other) {
-        return this == other; // Strict: only assignable to same type
+        if (this == BuiltinType.NULL) return other == BuiltinType.NULL;
+        if (other == BuiltinType.NULL) return true; // assign null to any class type
+        return this == other;
     }
 }
