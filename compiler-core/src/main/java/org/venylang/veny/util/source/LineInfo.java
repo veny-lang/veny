@@ -17,5 +17,16 @@
 
 package org.venylang.veny.util.source;
 
+/**
+ * Represents information about a specific line in a file.
+ * <p>
+ * This record encapsulates the file name, the character offset from the beginning of the file,
+ * and the line number where a particular event or token occurs.
+ * </p>
+ *
+ * @param fileName the name of the file
+ * @param offset   the character offset from the beginning of the file
+ * @param line     the line number in the file (starting from 1)
+ */
 public record LineInfo(String fileName, int offset, int line) {
 }

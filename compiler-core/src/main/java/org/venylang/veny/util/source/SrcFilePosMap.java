@@ -120,7 +120,9 @@ public class SrcFilePosMap {
      * @param content the file content as a byte array
      */
     public void setLinesForContent(byte[] content) {
-        if (content == null) throw new IllegalArgumentException("content must not be null");
+        if (content == null) {
+            throw new IllegalArgumentException("content must not be null");
+        }
 
         ArrayList<Integer> result = new ArrayList<>();
         result.add(0); // line 1 always starts at offset 0

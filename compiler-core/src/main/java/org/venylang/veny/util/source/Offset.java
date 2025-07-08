@@ -40,7 +40,7 @@ public record Offset(int offset) implements Comparable<Offset> {
      * @return true if the offset is greater than 0; false otherwise
      */
     public boolean isValid() {
-        return offset != 0;
+        return offset > 0;
     }
 
     /**
