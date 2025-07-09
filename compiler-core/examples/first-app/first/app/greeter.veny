@@ -1,0 +1,15 @@
+package first.app
+
+import veny.lang.Console
+
+class Greeter {
+    val greeting: Text = "Hello from Veny"
+
+    entry(args: [Text]): void {
+        Greeter().greet()
+    }
+
+    greet(): void {
+        Console.println(greeting)
+    }
+}

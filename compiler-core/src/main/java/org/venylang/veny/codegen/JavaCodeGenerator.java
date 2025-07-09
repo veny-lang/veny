@@ -22,6 +22,7 @@ import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * A visitor implementation that generates Java source code from a Veny AST.
@@ -47,6 +48,9 @@ import java.time.LocalDate;
  */
 public class JavaCodeGenerator implements AstVisitor<Void> {
     private final CodeBuilder builder = new CodeBuilder();
+    private String entryClassName = null;
+    private String entryPackageName = null;
+    private String currentPackageName = null; // tracks package during file traversal
 
     private JavaCodeGenerator() {}
 
@@ -78,11 +82,39 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             file.accept(this);
             builder.appendRawLine(""); // separate files
         }
+
+        if (entryClassName != null) {
+            builder.appendRawLine(""); // space
+            builder.appendRawLine("// Main launcher class");
+            builder.appendLine("public class Main {")
+                    .indent()
+                    .appendLine("public static void main(String[] args) {")
+                    .indent()
+                    .appendLine("veny.lang.Text[] venyArgs = new veny.lang.Text[args.length];")
+                    .appendLine("for (int i = 0; i < args.length; i++) {")
+                    .indent()
+                    .appendLine("venyArgs[i] = veny.lang.Text.of(args[i]);")
+                    .unindent()
+                    .appendLine("}");
+
+            String fullEntryClass = (entryPackageName != null && !entryPackageName.isEmpty())
+                    ? entryPackageName + "." + entryClassName
+                    : entryClassName;
+
+            builder.appendLine(fullEntryClass + ".entry(venyArgs);")
+                    .unindent()
+                    .appendLine("}")
+                    .unindent()
+                    .appendLine("}");
+        }
+
         return null;
     }
 
     @Override
     public Void visit(VenyFile node) {
+        currentPackageName = node.packageName();
+
         if (node.packageName() != null && !node.packageName().isEmpty()) {
             builder.appendLine("package " + node.packageName() + ";");
             builder.appendRawLine(""); // blank line after package
@@ -138,6 +170,8 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
         builder.unindent()
                 .appendLine("}");
+
+        setEntryClassName(node);
 
         return null;
     }
@@ -276,6 +310,19 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(ArrayLiteralExpr arrayLiteralExpr) {
+        return null;
+    }
+
+    private Void setEntryClassName(ClassDecl node) {
+        for (MethodDecl method : node.methods()) {
+            if (method.name().equals("entry") && method.parameters().size() == 1) {
+                String paramType = method.parameters().get(0).type();
+                if (paramType.equals("[Text]")) {  // Or use "String[]" if that's your internal name
+                    entryClassName = node.name();
+                    entryPackageName = currentPackageName;
+                }
+            }
+        }
         return null;
     }
 
