@@ -17,11 +17,9 @@
 
 package org.venylang.veny.runtime.api;
 
-import org.venylang.veny.runtime.core.VenyBool;
 import org.venylang.veny.runtime.core.VenyText;
 
-public interface VenyObject {
-    VenyText text();
-    VenyBool equalsTo(VenyObject other);
-    VenyText typeName();
+public interface Console extends VenyObject {
+    void print(VenyText msg);
+    void println(VenyText msg);
 }
