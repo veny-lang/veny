@@ -93,7 +93,12 @@ public class StdlibLoader {
 
             switch (url.getProtocol()) {
                 case "file" -> {
-                    Path dir = Paths.get(URLDecoder.decode(url.getPath(), StandardCharsets.UTF_8));
+                    String path = URLDecoder.decode(url.getPath(), StandardCharsets.UTF_8);
+                    // problem with leading / on Windows
+                    if (System.getProperty("os.name").toLowerCase().contains("win") && path.matches("^/[A-Za-z]:/.*")) {
+                        path = path.substring(1);
+                    }
+                    Path dir = Paths.get(path);
                     loadFromFileSystem(dir, result);
                 }
                 case "jar" -> loadFromJar(url, result);

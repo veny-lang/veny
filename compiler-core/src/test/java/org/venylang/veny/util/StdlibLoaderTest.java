@@ -73,7 +73,7 @@ class StdlibLoaderTest {
         Path venyLang = classpathDir.resolve("veny/lang");
         Files.createDirectories(venyLang);
         Path file = venyLang.resolve("cp-test.veny");
-        String content = "println(\"classpath file\");";
+        String content = "println(\"classpath file\")";
         Files.write(file, content.getBytes(StandardCharsets.UTF_8));
 
         URLClassLoader ucl = new URLClassLoader(
@@ -114,21 +114,19 @@ class StdlibLoaderTest {
             jos.closeEntry();
         }
 
-        URLClassLoader ucl = new URLClassLoader(
-                new URL[]{jarFile.toUri().toURL()},
-                null
-        );
+        try (URLClassLoader ucl = new URLClassLoader(new URL[]{jarFile.toUri().toURL()}, null)) {
 
-        Thread.currentThread().setContextClassLoader(ucl);
+            Thread.currentThread().setContextClassLoader(ucl);
 
-        StdlibLoader loader = new StdlibLoader("veny.lang", Optional.empty());
-        List<SourceFile> files = loader.load();
+            StdlibLoader loader = new StdlibLoader("veny.lang", Optional.empty());
+            List<SourceFile> files = loader.load();
 
-        assertEquals(1, files.size());
-        SourceFile sf = files.get(0);
+            assertEquals(1, files.size());
+            SourceFile sf = files.get(0);
 
-        assertEquals("veny/lang/jar-test.veny", sf.filename());
-        assertEquals("println(\"from jar\");", sf.source());
+            assertEquals("veny/lang/jar-test.veny", sf.filename());
+            assertEquals("println(\"from jar\");", sf.source());
+        }
     }
 
     @Test
