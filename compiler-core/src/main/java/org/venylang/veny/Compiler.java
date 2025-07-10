@@ -21,9 +21,13 @@ import org.venylang.veny.context.CompilerContext;
 import org.venylang.veny.imports.ImportResolver;
 import org.venylang.veny.imports.IterativeImportResolver;
 import org.venylang.veny.util.FileCollector;
+import org.venylang.veny.util.SourceFile;
+import org.venylang.veny.util.StdlibLoader;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
@@ -53,6 +57,9 @@ public class Compiler {
         CompilerPipeline pipeline = new CompilerPipeline(compilerContext, resolver);
 
         // 1️⃣ Compile stdlib (from a known location)
+        StdlibLoader loader = new StdlibLoader("veny", Optional.empty());
+        List<SourceFile> files = loader.load();
+
         //Path stdlibDir = Paths.get("resources/veny"); // or wherever you keep stdlib files
         //compileStdlib(stdlibDir, pipeline);
 
@@ -70,93 +77,6 @@ public class Compiler {
 
         pipeline.compile(collector.stream().toList());
     }
-
-    /** private void compile(List<Path> filesToCompile) {
-        Program program = new Program(parseVenyFiles(filesToCompile));
-        System.out.println("AST: " + program);
-
-        // SEMANTIC ANALYSIS
-        SemanticAnalyzer analyzer = new SemanticAnalyzer();
-        program.accept(analyzer); // type resolution, scoping, etc.
-        System.out.println("Semantic analysis completed.");
-
-        // Code generation
-        String javaCode = JavaCodeGenerator.of(program).getCode();
-        System.out.println("Generated Java code:");
-        System.out.println(javaCode);
-    } */       //String javaCode = generator.visitProgram(program);
-
-
-    /**
-     * Parses the given list of Veny source files into a list of AST file nodes.
-     *
-     * @param filesToCompile paths to Veny source files
-     * @return a list of parsed VenyFile AST nodes
-     */
-    /** public List<VenyFile> parseVenyFiles(List<Path> filesToCompile) {
-        List<VenyFile> allFiles = new ArrayList<>();
-        SrcFileSet fileSet = new SrcFileSet();
-
-        filesToCompile.forEach(path -> {
-            try {
-                Optional<ParsedFile> result = ParsedFileExtractor.of(path).extract();
-                result.ifPresentOrElse(parsedFile -> {
-                    validatePackagePath(path, parsedFile.packageName());
-
-                    System.out.println("Parsed: " + parsedFile);
-
-                    try {
-                        String source = SourceFile.of(path).source();
-
-                        VenyFile venyFile = parseSingleFile(path, source, fileSet);
-                        // Register file with the file set
-                        /** SrcFilePosMap file = fileSet.addFile(path.toString(), source.length(), )
-                        List<Token> tokens = new Lexer(source).scanTokens();
-                        VenyFile venyFile = new RecursiveDescentParser(tokens).parse();*/
-                        /** allFiles.add(venyFile);
-                    } catch (IOException ex) {
-                        System.err.println("Error reading file during compilation: " + workingDir.relativize(path));
-                        ex.printStackTrace();
-                    }
-                },
-                () -> reportMissingPackage(path));
-            } catch (IOException e) {
-                System.err.println("Failed to compile: " + path);
-                e.printStackTrace();
-            }
-        });
-
-        return allFiles;
-    }*/
-
-    /** private void validatePackagePath(Path filePath, String packageName) {
-        Path relative = workingDir.relativize(filePath);
-        String expectedDir = (relative.getParent() != null) ? relative.getParent().toString() : "";
-        if (!expectedDir.replace(File.separatorChar, '.').equals(packageName)) {
-            throw new CompilationException(relative + ": Package `" + packageName +
-                    "` does not match file location `" + expectedDir + "`");
-        }
-    }
-
-    private void reportMissingPackage(Path path) {
-        System.err.println("Missing package declaration in file: " + workingDir.relativize(path));
-    }
-
-    private VenyFile parseSingleFile(Path path, String source, SrcFileSet fileSet) throws IOException {
-        // Register the file
-        SrcFilePosMap fileMap = fileSet.addFile(path.toString(), source.length());
-
-        // Create parse context for this file
-        ParseContext parseContext = ParseContext.builder()
-                .source(source)
-                .filePath(path)
-                .srcFilePosMap(fileMap)
-                .build();
-
-        // Tokenize and parse
-        List<Token> tokens = new Lexer(source, parseContext.srcFilePosMap()).scanTokens();
-        return new RecursiveDescentParser(tokens, parseContext).parse();
-    }*/
 
     private void compileStdlib(Path stdlibDir, CompilerPipeline pipeline) {
         System.out.println("Compiling standard library from: " + stdlibDir);

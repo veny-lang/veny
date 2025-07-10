@@ -23,6 +23,7 @@ import org.venylang.veny.context.ParseContext;
 import org.venylang.veny.context.CompilerContext;
 import org.venylang.veny.imports.ImportExtractor;
 import org.venylang.veny.imports.ImportRecord;
+import org.venylang.veny.imports.ImportResolutionException;
 import org.venylang.veny.imports.ImportResolver;
 import org.venylang.veny.lexer.Lexer;
 import org.venylang.veny.lexer.Token;
@@ -82,7 +83,14 @@ public class CompilerPipeline {
 
     // 🔽 Extract import records and resolve them
     List<ImportRecord> imports = astNodes.stream()
-            .flatMap(file -> ImportExtractor.extract(file).stream()) // ImportExtractor returns List<ImportRecord>
+            .flatMap(file -> {
+                try {
+                    return ImportExtractor.of(file).extract().stream();
+                } catch (ImportResolutionException e) {
+                    //TODO try adding an error to the error reporter
+                    throw new RuntimeException(e);
+                }
+            }) // ImportExtractor returns List<ImportRecord>
             .toList();
 
     /** TODO: Uncomment and implement semantic analysis

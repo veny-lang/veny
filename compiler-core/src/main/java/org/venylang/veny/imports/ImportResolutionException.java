@@ -17,6 +17,17 @@
 
 package org.venylang.veny.imports;
 
+/**
+ * Exception thrown to indicate a failure during the import resolution process.
+ */
 public class ImportResolutionException extends Exception {
-    public ImportResolutionException(String message) { super(message); }
+
+    /**
+     * Constructs a new ImportResolutionException with the specified detail message.
+     *
+     * @param message the detail message explaining the reason for the exception
+     */
+    public ImportResolutionException(String message) {
+        super(message);
+    }
 }

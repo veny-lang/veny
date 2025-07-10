@@ -17,4 +17,10 @@
 
 package org.venylang.veny.imports;
 
+/**
+ * Represents a record of an import with its associated package and class names.
+ *
+ * @param packageName the name of the package containing the class
+ * @param className the name of the class being imported
+ */
 public record ImportRecord(String packageName, String className) {}

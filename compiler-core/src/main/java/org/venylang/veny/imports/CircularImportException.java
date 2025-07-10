@@ -17,6 +17,17 @@
 
 package org.venylang.veny.imports;
 
+/**
+ * Exception thrown to indicate that a circular import was detected during the import resolution process.
+ */
 public class CircularImportException extends ImportResolutionException {
-    public CircularImportException(String message) { super(message); }
+
+    /**
+     * Constructs a new CircularImportException with the specified detail message.
+     *
+     * @param message the detail message explaining the cause of the circular import
+     */
+    public CircularImportException(String message) {
+        super(message);
+    }
 }
