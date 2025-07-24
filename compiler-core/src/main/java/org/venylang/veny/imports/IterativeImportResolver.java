@@ -17,12 +17,26 @@
 
 package org.venylang.veny.imports;
 
+import org.venylang.veny.context.ParseContext;
+import org.venylang.veny.lexer.Lexer;
+import org.venylang.veny.lexer.Token;
+import org.venylang.veny.parser.ParseException;
+import org.venylang.veny.parser.RecursiveDescentParser;
+import org.venylang.veny.parser.ast.ClassDecl;
+import org.venylang.veny.parser.ast.InterfaceDecl;
+import org.venylang.veny.parser.ast.VenyFile;
+import org.venylang.veny.semantic.SemanticAnalyzer;
+import org.venylang.veny.semantic.SemanticException;
 import org.venylang.veny.semantic.symbols.ClassSymbol;
 import org.venylang.veny.parser.ast.AstNode;
 import org.venylang.veny.semantic.SymbolTable;
+import org.venylang.veny.util.source.SrcFilePosMap;
+import org.venylang.veny.util.source.SrcFileSet;
 
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -39,6 +53,9 @@ public class IterativeImportResolver implements ImportResolver {
 
     /** The global symbol table used to store and resolve class definitions. */
     private final SymbolTable globalClassTable;
+
+    /** Cache: fully–qualified class name → source file path. Filled lazily. */
+    private final Map<String, Path> packageIndex = new HashMap<>();
 
     /** Tracks files that have already been fully compiled and processed. */
     private final Set<Path> compiledFiles = new HashSet<>();
@@ -73,9 +90,13 @@ public class IterativeImportResolver implements ImportResolver {
 
         while (!queue.isEmpty()) {
             ImportRecord imp = queue.poll();
-            Path filePath = resolveImportPath(imp.packageName(), imp.className());
+            String fqcn = imp.packageName() + "." + imp.className();
 
-            if (compiledFiles.contains(filePath)) continue;
+            Path filePath = locateSourceFile(fqcn, imp.packageName());
+
+            if (compiledFiles.contains(filePath)) {
+                continue;
+            }
 
             if (compilingNow.contains(filePath)) {
                 throw new CircularImportException("Circular import detected: " + filePath);
@@ -108,14 +129,49 @@ public class IterativeImportResolver implements ImportResolver {
     }
 
     /**
-     * Resolves the file path of the imported class based on its package and class name.
+     * Locates the source file for the given FQCN, populating the package index if necessary.
      *
-     * @param packageName the package of the class
-     * @param className the name of the class
-     * @return the path to the corresponding source file
+     * @param fqcn         fully‑qualified class name
+     * @param packageName  package portion of the FQCN
+     * @return path to the source file
+     * @throws ImportResolutionException if the file cannot be found
      */
-    private Path resolveImportPath(String packageName, String className) {
-        return sourceRoot.resolve(Paths.get(packageName.replace('.', '/'), className + ".veny"));
+    private Path locateSourceFile(String fqcn, String packageName) throws ImportResolutionException {
+        Path path = packageIndex.get(fqcn);
+        if (path != null) {
+            return path;
+        }
+
+        Path packageDir = sourceRoot.resolve(packageName.replace('.', '/'));
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(packageDir, "*.veny")) {
+            for (Path p : stream) {
+                AstNode ast = compileFileToAST(p);
+                if (!(ast instanceof VenyFile venyFile)) continue;
+
+                for (ClassDecl cls : venyFile.classes()) {
+                    String declaredFqcn = venyFile.packageName() + "." + cls.name();
+                    packageIndex.put(declaredFqcn, p);
+                }
+                for (InterfaceDecl iface : venyFile.interfaces()) {
+                    String declaredFqcn = venyFile.packageName() + "." + iface.name();
+                    packageIndex.put(declaredFqcn, p);
+                }
+            }
+        } catch (IOException e) {
+            throw new ImportResolutionException("Failed to scan package directory: " + packageDir);
+        }
+
+        path = packageIndex.get(fqcn);
+        if (path == null) {
+            throw new ImportResolutionException("Class not found: " + fqcn);
+        }
+
+        return path;
+    }
+
+    private String stripExtension(String filename) {
+        int dotIndex = filename.lastIndexOf('.');
+        return (dotIndex == -1) ? filename : filename.substring(0, dotIndex);
     }
 
     /**
@@ -126,8 +182,27 @@ public class IterativeImportResolver implements ImportResolver {
      * @throws ImportResolutionException if compilation fails
      */
     private AstNode compileFileToAST(Path filePath) throws ImportResolutionException {
-        // TODO: Actual lexer → parser integration here
-        throw new UnsupportedOperationException("Not yet implemented");
+        try {
+            String source = Files.readString(filePath);
+            SrcFileSet fileSet = new SrcFileSet();
+            SrcFilePosMap fileMap = fileSet.addFile(filePath.toString(), source.length()); // If needed, can be constructed differently
+
+            ParseContext parseContext = ParseContext.builder()
+                    .source(source)
+                    .filePath(filePath)
+                    .srcFilePosMap(fileMap)
+                    .build();
+
+            List<Token> tokens = new Lexer(source, fileMap).scanTokens();
+            VenyFile ast = new RecursiveDescentParser(tokens, parseContext).parse();
+
+            return ast;
+
+        } catch (IOException e) {
+            throw new ImportResolutionException("Failed to read file: " + filePath, e);
+        } catch (ParseException e) {
+            throw new ImportResolutionException("Failed to parse file: " + filePath, e);
+        }
     }
 
     /**
@@ -137,8 +212,20 @@ public class IterativeImportResolver implements ImportResolver {
      * @return a list of import records found in the AST
      */
     private List<ImportRecord> extractImports(AstNode ast) {
-        // TODO: Parse the AST to extract import declarations
-        return List.of(); // Placeholder
+        if (!(ast instanceof VenyFile venyFile)) {
+            throw new IllegalArgumentException("Expected VenyFile AST node");
+        }
+
+        return venyFile.imports().stream()
+            .map(String::trim)
+            .filter(fqcn -> fqcn.contains("."))
+            .map(fqcn -> {
+                int dot = fqcn.lastIndexOf('.');
+                String pkg = fqcn.substring(0, dot);
+                String cls = fqcn.substring(dot + 1);
+                return new ImportRecord(pkg, cls);
+            })
+            .toList();
     }
 
     /**
@@ -148,9 +235,36 @@ public class IterativeImportResolver implements ImportResolver {
      * @param imp the associated import record
      * @return the extracted class symbol
      */
-    private ClassSymbol analyzeAndExtractSymbols(AstNode ast, ImportRecord imp) {
-        // TODO: Semantic analysis and symbol extraction
-        // return new ClassSymbol(imp.className()); // Placeholder
-        return null; // TODO: Implement actual logic
+    private ClassSymbol analyzeAndExtractSymbols(AstNode ast, ImportRecord imp) throws  ImportResolutionException {
+        if (!(ast instanceof VenyFile venyFile)) {
+            throw new IllegalArgumentException("Expected a VenyFile AST node");
+        }
+
+        // Step 1: Find the matching ClassDecl
+        ClassDecl targetClass = null;
+        for (ClassDecl cls : venyFile.classes()) {
+            if (cls.name().equals(imp.className())) {
+                targetClass = cls;
+                break;
+            }
+        }
+
+        if (targetClass == null) {
+            throw new ImportResolutionException("Class " + imp.className() + " not found in file.");
+        }
+
+        // Step 2: Analyze the ClassDecl to extract symbols
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        // Manually visit just the class (not the whole file/program)
+        targetClass.accept(analyzer);
+
+        // Step 3: Get the class symbol from the global scope
+        ClassSymbol symbol = (ClassSymbol)analyzer.getGlobalScope().resolve(imp.className());
+
+        if (symbol == null) {
+            throw new SemanticException("Failed to extract symbol for class: " + imp.className());
+        }
+
+        return symbol;
     }
 }

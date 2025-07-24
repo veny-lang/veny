@@ -30,4 +30,14 @@ public class ImportResolutionException extends Exception {
     public ImportResolutionException(String message) {
         super(message);
     }
+
+    /**
+     * Constructs a new ImportResolutionException with the specified detail message and cause.
+     *
+     * @param message the detail message
+     * @param cause the cause of the exception
+     */
+    public ImportResolutionException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

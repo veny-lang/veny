@@ -64,6 +64,10 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         return errors;
     }
 
+    public GlobalScope getGlobalScope() {
+        return globalScope;
+    }
+
     /** @return the current (top of the stack) scope */
     private Scope currentScope() {
         return scopeStack.peek();
