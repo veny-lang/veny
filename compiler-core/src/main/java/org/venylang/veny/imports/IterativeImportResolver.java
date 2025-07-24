@@ -259,7 +259,7 @@ public class IterativeImportResolver implements ImportResolver {
         targetClass.accept(analyzer);
 
         // Step 3: Get the class symbol from the global scope
-        ClassSymbol symbol = (ClassSymbol)analyzer.getGlobalScope().resolve(imp.className());
+        ClassSymbol symbol = analyzer.resolveClass(imp.className());
 
         if (symbol == null) {
             throw new SemanticException("Failed to extract symbol for class: " + imp.className());

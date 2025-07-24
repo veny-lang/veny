@@ -68,6 +68,11 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         return globalScope;
     }
 
+    public ClassSymbol resolveClass(String name) {
+        Symbol sym = globalScope.resolve(name);
+        return (sym instanceof ClassSymbol cls) ? cls : null;
+    }
+
     /** @return the current (top of the stack) scope */
     private Scope currentScope() {
         return scopeStack.peek();
