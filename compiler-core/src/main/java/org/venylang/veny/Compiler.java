@@ -52,8 +52,7 @@ public class Compiler {
         System.out.println("Working directory: " + workingDir);
 
         CompilerContext compilerContext = new CompilerContext(workingDir);
-        ImportResolver resolver = new IterativeImportResolver(
-                compilerContext.workingDirectory(), compilerContext.globalSymbols());
+        ImportResolver resolver = new IterativeImportResolver(workingDir, compilerContext.globalSymbols());
         CompilerPipeline pipeline = new CompilerPipeline(compilerContext, resolver);
 
         // 1️⃣ Compile stdlib (from a known location)

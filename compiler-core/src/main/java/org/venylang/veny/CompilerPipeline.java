@@ -191,7 +191,7 @@ public class CompilerPipeline {
 
                             try {
                                 String source = SourceFile.of(path).source();
-                                compileSingleFile(path, source, fileSet);
+                                contexts.add(compileSingleFile(path, source, fileSet));
                             } catch (IOException ex) {
                                 compilerContext.errorReporter();
                                 // TODO: .error("Error reading: " + path + " - " + ex.getMessage());
