@@ -15,10 +15,16 @@
  *
  */
 
-package org.venylang.cli.command;
+package org.venylang.cli;
 
-public interface CliCommand {
-    void execute();
-    String name();
-    String description();
+import org.venylang.cli.command.BuildCommand;
+import picocli.CommandLine;
+
+@CommandLine.Command(name = "venyc", subcommands = {BuildCommand.class})
+public class VenyCliPicocliLauncher {
+
+    public static void main(String[] args) {
+        int exitCode = new CommandLine(new VenyCliPicocliLauncher()).execute(args);
+        System.exit(exitCode);
+    }
 }

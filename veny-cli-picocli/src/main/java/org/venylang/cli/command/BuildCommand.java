@@ -15,9 +15,9 @@
  *
  */
 
-package org.venyland.cli.command;
+package org.venylang.cli.command;
 
-import org.venylang.cli.command.CliCommand;
+import org.venylang.veny.Compiler;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -47,17 +47,12 @@ public class BuildCommand implements Runnable, CliCommand {
      */
     @Override
     public void run() {
-        // TODO: Implement the compilation logic here.
+        execute();
     }
 
-    /**
-     * Executes the command programmatically with the provided arguments.
-     *
-     * @param args the arguments passed to the command
-     */
     @Override
-    public void execute(String[] args) {
-        // TODO: Parse args and trigger the run logic if necessary.
+    public void execute() {
+        new Compiler().run(new String[]{sourceDir.getAbsolutePath()});
     }
 
     /**

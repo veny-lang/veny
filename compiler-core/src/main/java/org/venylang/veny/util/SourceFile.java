@@ -23,6 +23,7 @@ import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Represents a source file to be compiled by the Veny compiler.
@@ -86,6 +87,10 @@ public class SourceFile {
      */
     public String filename() {
         return filename;
+    }
+
+    public Path path() {
+        return Paths.get(filename);
     }
 
     /**
