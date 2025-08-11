@@ -156,8 +156,7 @@ public class CompilerPipeline {
                             validatePackagePath(path, parsedFile.packageName());
 
                             String source = sourceFile.source(); // direct access instead of re-reading
-                            FileCompilationContext context = compileSingleFile(path, source, fileSet);
-                            contexts.add(context); // ✅ Make sure to add the compiled context
+                            contexts.add(compileSingleFile(path, source, fileSet)); // ✅ Make sure to add the compiled context
                         },
                         () -> reportMissingPackage(path)
                 );
