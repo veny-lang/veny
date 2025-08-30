@@ -35,7 +35,7 @@ import java.util.zip.ZipEntry;
  * </ul>
  * This allows seamless support for both development and deployment scenarios.
  */
-public class StdlibLoader {
+public class StdlibLoader implements SourceRoot {
 
     private final String basePackage;
     private final Optional<Path> devOverridePath;
@@ -73,6 +73,33 @@ public class StdlibLoader {
         }
 
         return result;
+    }
+
+    @Override
+    public Path rootPath() {
+        return devOverridePath.orElse(Paths.get("/"));
+    }
+
+    @Override
+    public boolean isDevOverride() {
+        return devOverridePath.isPresent();
+    }
+
+    @Override
+    public List<SourceFile> loadSources() throws IOException {
+        List<SourceFile> result = new ArrayList<>();
+
+        if (devOverridePath.isPresent()) {
+            loadFromFileSystem(devOverridePath.get().resolve(resourcePath), result);
+        } else {
+            loadFromClasspath(result);
+        }
+
+        return result;
+    }
+
+    public Path getRoot() {
+        return devOverridePath.orElse(null);
     }
 
     /**

@@ -22,11 +22,15 @@ import org.venylang.veny.context.CompilerContext;
 import org.venylang.veny.imports.ImportResolver;
 import org.venylang.veny.imports.IterativeImportResolver;
 import org.venylang.veny.util.FileCollector;
+import org.venylang.veny.util.SourceFile;
+import org.venylang.veny.util.StdlibLoader;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * {@code BuildCommand} is a CLI command that compiles Veny source code.
@@ -65,6 +69,11 @@ public class BuildCommand implements Runnable, CliCommand {
         CompilerPipeline pipeline = new CompilerPipeline(compilerContext, resolver);
 
         // 1️⃣ Compile stdlib (from a known location)
+        //StdlibLoader loader = new StdlibLoader("veny", Optional.empty());
+        StdlibLoader loader = new StdlibLoader("veny", Optional.of(Paths.get("/home/stoyanp/my-work/veny/stdlib/target/classes/")));
+        //List<SourceFile> files = loader.load();
+        //pipeline.compileStdLib(files, loader.getRoot());
+        pipeline.compileStdLib(loader);
 
         // 2️⃣ Compile user project
         FileCollector collector = FileCollector.of(workingDir);

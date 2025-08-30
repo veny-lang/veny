@@ -1,0 +1,82 @@
+@startuml
+' ===== Interfaces =====
+interface SourceRoot {
+    +Path rootPath()
+    +List<SourceFile> loadSources() throws IOException
+    +boolean isDevOverride()
+}
+
+' ===== Implementations =====
+class StdlibLoader {
+    -String basePackage
+    -Optional<Path> devOverridePath
+    -String resourcePath
+    +StdlibLoader(String, Optional<Path>)
+    +Path rootPath()
+    +List<SourceFile> loadSources() throws IOException
+    +boolean isDevOverride()
+    -loadFromClasspath(List<SourceFile>)
+    -loadFromDevPath(List<SourceFile>)
+    -loadFromFileSystem(Path, List<SourceFile>)
+    -loadFromJar(URL, List<SourceFile>)
+}
+
+class FileSystemSourceRoot {
+    -Path basePath
+    +FileSystemSourceRoot(Path)
+    +Path rootPath()
+    +List<SourceFile> loadSources() throws IOException
+    +boolean isDevOverride()
+}
+
+class CompilerPipeline {
+    +void compileSources(SourceRoot sourceRoot)
+    -List<FileCompilationContext> parseSources(List<SourceFile>, SrcFileSet, Path)
+    -void processCompilation(List<FileCompilationContext>, boolean)
+}
+
+class SourceFile {
+    +static SourceFile of(Path)
+    +static SourceFile of(String, InputStream)
+    +Path path()
+    +String source()
+}
+
+class FileCompilationContext
+class AST
+class Program
+
+' ===== Relationships =====
+SourceRoot <|.. StdlibLoader
+SourceRoot <|.. FileSystemSourceRoot
+CompilerPipeline --> SourceRoot : depends on
+CompilerPipeline --> SourceFile : uses
+CompilerPipeline --> FileCompilationContext : generates
+FileCompilationContext --> AST : contains
+AST --> Program : forms
+
+StdlibLoader --> SourceFile : produces
+FileSystemSourceRoot --> SourceFile : produces
+
+' ===== Flows =====
+note right of StdlibLoader
+  Loads stdlib files from:
+  - Classpath (JAR)
+  - Dev override path
+end note
+
+note right of FileSystemSourceRoot
+  Loads user source files
+  from local filesystem
+end note
+
+note left of CompilerPipeline
+  Accepts any SourceRoot
+  - Parses files
+  - Validates packages
+  - Builds AST
+  - Generates Program
+  - Optionally produces Java code
+end note
+
+@enduml

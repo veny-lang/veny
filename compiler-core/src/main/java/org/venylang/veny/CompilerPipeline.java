@@ -33,6 +33,7 @@ import org.venylang.veny.parser.ast.VenyFile;
 import org.venylang.veny.util.ParsedFile;
 import org.venylang.veny.util.ParsedFileExtractor;
 import org.venylang.veny.util.SourceFile;
+import org.venylang.veny.util.SourceRoot;
 import org.venylang.veny.util.source.SrcFilePosMap;
 import org.venylang.veny.util.source.SrcFileSet;
 
@@ -83,8 +84,17 @@ public class CompilerPipeline {
      *
      * @param stdlibSources a list of {@link SourceFile} instances representing standard library files to compile
      */
-    public void compileStdLib(List<SourceFile> stdlibSources) {
-        processCompilation(parseStdLib(stdlibSources, new SrcFileSet()), false);
+    public void compileStdLib(List<SourceFile> stdlibSources, Path rootPath) {
+        processCompilation(parseStdLib(stdlibSources, new SrcFileSet(), rootPath), false);
+    }
+
+    public void compileStdLib(SourceRoot sourceRoot) {
+        try {
+            List<SourceFile> stdlibSources = sourceRoot.loadSources();
+            processCompilation(parseStdLib(stdlibSources, new SrcFileSet(), sourceRoot.rootPath()), false);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load stdlib sources from " + sourceRoot.rootPath(), e);
+        }
     }
 
     /**
@@ -143,8 +153,10 @@ public class CompilerPipeline {
         }
     }
 
-    private List<FileCompilationContext> parseStdLib(List<SourceFile> stdlibSources, SrcFileSet fileSet) {
+    private List<FileCompilationContext> parseStdLib(List<SourceFile> stdlibSources, SrcFileSet fileSet, Path rootPath) {
         List<FileCompilationContext> contexts = new ArrayList<>();
+
+        //Path stdLibRoot = null; //devOverridePath.orElse(compilerContext.workingDirectory());
 
         for (SourceFile sourceFile : stdlibSources) {
             Path path = sourceFile.path();
@@ -153,12 +165,12 @@ public class CompilerPipeline {
                 Optional<ParsedFile> parsedHeader = ParsedFileExtractor.of(path).extract();
                 parsedHeader.ifPresentOrElse(
                         parsedFile -> {
-                            validatePackagePath(path, parsedFile.packageName());
+                            validatePackagePath(path, parsedFile.packageName(), rootPath);
 
                             String source = sourceFile.source(); // direct access instead of re-reading
                             contexts.add(compileSingleFile(path, source, fileSet)); // ✅ Make sure to add the compiled context
                         },
-                        () -> reportMissingPackage(path)
+                        () -> reportMissingPackage(path, rootPath)
                 );
 
             } catch (IOException e) {
@@ -186,7 +198,7 @@ public class CompilerPipeline {
 
                 parsedHeader.ifPresentOrElse(
                         parsedFile -> {
-                            validatePackagePath(path, parsedFile.packageName());
+                            validatePackagePath(path, parsedFile.packageName(), compilerContext.workingDirectory());
 
                             try {
                                 String source = SourceFile.of(path).source();
@@ -260,14 +272,39 @@ public class CompilerPipeline {
      * @param packageName the declared package name
      * @throws CompilationException if the package name does not match the file path
      */
-    private void validatePackagePath(Path filePath, String packageName) {
-        Path relative = compilerContext.workingDirectory().relativize(filePath);
+    private void validatePackagePath(Path filePath, String packageName, Path rootDir) {
+        //Path relative = compilerContext.workingDirectory().relativize(filePath);
+        Path relative = rootDir.relativize(filePath);
         String expectedDir = (relative.getParent() != null) ? relative.getParent().toString() : "";
         if (!expectedDir.replace(File.separatorChar, '.').equals(packageName)) {
             throw new CompilationException(relative + ": Package `" + packageName +
                     "` does not match file location `" + expectedDir + "`");
         }
     }
+
+    /**
+     * Validates that the package declared in a file matches its directory location.
+     *
+     * @param filePath    the path to the source file
+     * @param packageName the package declared in the file
+     * @param rootDir     the root directory used for stdlib files (can be null if classpath/JAR)
+     */
+    /*private void validatePackagePath(Path filePath, String packageName, Path rootDir) {
+        if (rootDir != null) {
+            // Dev override path
+            Path relative = rootDir.relativize(filePath);
+            String expectedPackage = relative.getParent() != null
+                    ? relative.getParent().toString().replace(File.separatorChar, '.')
+                    : "";
+            if (!expectedPackage.equals(packageName)) {
+                throw new CompilationException(filePath + ": Package `" + packageName +
+                        "` does not match file location `" + expectedPackage + "`");
+            }
+        } else {
+            // Classpath/JAR: paths already match package hierarchy inside JAR
+            // Optional: skip or add a lightweight check if needed
+        }
+    }*/
 
     /**
      * Reports a missing package declaration for the given file.
@@ -277,6 +314,10 @@ public class CompilerPipeline {
     private void reportMissingPackage(Path path) {
         System.err.println("Missing package declaration in file: " +
                 compilerContext.workingDirectory().relativize(path));
+    }
+
+    private void reportMissingPackage(Path path, Path rootPath) {
+        System.err.println("Missing package declaration in file: " + rootPath.relativize(path));
     }
 }
 
