@@ -31,11 +31,14 @@ public class FileCollector {
 
     private final List<Path> venyFiles;
 
+    private final Path baseDir;
+
     public static final FileCollector of(Path dir) {
         return new FileCollector(dir);
     }
 
     private FileCollector(Path dir) {
+        baseDir = dir;
         List<Path> collected;
         try (Stream<Path> stream = Files.walk(dir)) {
             collected = stream
@@ -62,5 +65,9 @@ public class FileCollector {
 
     public boolean isEmpty() {
         return venyFiles.isEmpty();
+    }
+
+    public  Path baseDir() {
+        return baseDir;
     }
 }

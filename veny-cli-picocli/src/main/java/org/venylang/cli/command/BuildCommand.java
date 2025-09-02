@@ -21,9 +21,7 @@ import org.venylang.veny.CompilerPipeline;
 import org.venylang.veny.context.CompilerContext;
 import org.venylang.veny.imports.ImportResolver;
 import org.venylang.veny.imports.IterativeImportResolver;
-import org.venylang.veny.util.FileCollector;
-import org.venylang.veny.util.SourceFile;
-import org.venylang.veny.util.StdlibLoader;
+import org.venylang.veny.util.*;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -73,7 +71,7 @@ public class BuildCommand implements Runnable, CliCommand {
         StdlibLoader loader = new StdlibLoader("veny", Optional.of(Paths.get("/home/stoyanp/my-work/veny/stdlib/target/classes/")));
         //List<SourceFile> files = loader.load();
         //pipeline.compileStdLib(files, loader.getRoot());
-        pipeline.compileStdLib(loader);
+        pipeline.compile(loader, false);
 
         // 2️⃣ Compile user project
         FileCollector collector = FileCollector.of(workingDir);
@@ -82,7 +80,8 @@ public class BuildCommand implements Runnable, CliCommand {
             return;
         }
 
-        pipeline.compile(collector.stream().toList());
+        SourceRoot userCode = new UserSourceRoot(workingDir);
+        pipeline.compile(userCode, true);
     }
 
     /**

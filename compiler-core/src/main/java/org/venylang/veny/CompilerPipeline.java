@@ -46,8 +46,12 @@ import java.util.Optional;
 
 /**
  * The {@code CompilerPipeline} class represents the main compilation pipeline
- * for processing source files. It handles parsing, AST generation, semantic analysis,
- * and Java code generation.
+ * for processing Veny source files. It orchestrates parsing, AST construction,
+ * semantic analysis, and (optionally) Java code generation.
+ * <p>
+ * This class serves as the core entry point for compilation, providing
+ * methods for compiling all source files from a {@link SourceRoot} or
+ * individual source files.
  */
 public class CompilerPipeline {
 
@@ -66,35 +70,53 @@ public class CompilerPipeline {
     }
 
     /**
-     * Compiles the given list of source files. This includes parsing the files into ASTs,
-     * performing semantic analysis (currently commented out), and generating Java code.
+     * Compiles all source files provided by the given {@link SourceRoot}.
+     * <p>
+     * This method loads source files from the specified root, parses them
+     * into ASTs, performs semantic analysis, and optionally generates Java code.
      *
-     * @param filesToCompile the list of file paths to compile
+     * @param sourceRoot   the source root containing all files to compile
+     * @param generateCode {@code true} to generate Java code after analysis; {@code false} to stop at analysis
+     * @throws RuntimeException if loading source files fails
      */
-    public void compile(List<Path> filesToCompile) {
-        processCompilation(parse(filesToCompile, new SrcFileSet()), true);
+    public void compile(SourceRoot sourceRoot, boolean generateCode) {
+        try {
+            List<SourceFile> sources = sourceRoot.loadSources();
+            processCompilation(parse(sources, new SrcFileSet(), sourceRoot.rootPath()), generateCode);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load sources from " + sourceRoot.rootPath(), e);
+        }
     }
 
     /**
-     * Compiles the provided standard library source files.
+     * Parses a collection of {@link SourceFile} objects into {@link FileCompilationContext} instances.
      * <p>
-     * This method parses the given list of {@link SourceFile} objects representing
-     * standard library code, and then processes them as part of the compilation pipeline.
-     * The resulting compilation context is marked as standard library code (i.e., not user code).
+     * Each source file is tokenized, parsed into an AST, and wrapped in a
+     * {@code FileCompilationContext} for further compilation stages.
      *
-     * @param stdlibSources a list of {@link SourceFile} instances representing standard library files to compile
+     * @param sources  the list of source files to parse
+     * @param fileSet  a {@link SrcFileSet} to track file mappings and positions
+     * @param rootPath the root directory for resolving relative paths
+     * @return a list of {@code FileCompilationContext} objects representing parsed files
+     * @throws RuntimeException if parsing any file fails
      */
-    public void compileStdLib(List<SourceFile> stdlibSources, Path rootPath) {
-        processCompilation(parseStdLib(stdlibSources, new SrcFileSet(), rootPath), false);
-    }
+    private List<FileCompilationContext> parse(List<SourceFile> sources, SrcFileSet fileSet, Path rootPath) {
+        List<FileCompilationContext> contexts = new ArrayList<>();
 
-    public void compileStdLib(SourceRoot sourceRoot) {
-        try {
-            List<SourceFile> stdlibSources = sourceRoot.loadSources();
-            processCompilation(parseStdLib(stdlibSources, new SrcFileSet(), sourceRoot.rootPath()), false);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load stdlib sources from " + sourceRoot.rootPath(), e);
+        for (SourceFile sourceFile : sources) {
+            Path path = sourceFile.path();
+            try {
+                Optional<ParsedFile> parsedHeader = ParsedFileExtractor.of(path).extract();
+                parsedHeader.ifPresentOrElse(parsedFile -> {
+                    validatePackagePath(path, parsedFile.packageName(), rootPath);
+                    contexts.add(compileSingleFile(path, sourceFile.source(), fileSet));
+                }, () -> reportMissingPackage(path, rootPath));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
+
+        return contexts;
     }
 
     /**
@@ -151,73 +173,6 @@ public class CompilerPipeline {
             System.out.println("Generated Java code:");
             System.out.println(javaCode);
         }
-    }
-
-    private List<FileCompilationContext> parseStdLib(List<SourceFile> stdlibSources, SrcFileSet fileSet, Path rootPath) {
-        List<FileCompilationContext> contexts = new ArrayList<>();
-
-        //Path stdLibRoot = null; //devOverridePath.orElse(compilerContext.workingDirectory());
-
-        for (SourceFile sourceFile : stdlibSources) {
-            Path path = sourceFile.path();
-
-            try {
-                Optional<ParsedFile> parsedHeader = ParsedFileExtractor.of(path).extract();
-                parsedHeader.ifPresentOrElse(
-                        parsedFile -> {
-                            validatePackagePath(path, parsedFile.packageName(), rootPath);
-
-                            String source = sourceFile.source(); // direct access instead of re-reading
-                            contexts.add(compileSingleFile(path, source, fileSet)); // ✅ Make sure to add the compiled context
-                        },
-                        () -> reportMissingPackage(path, rootPath)
-                );
-
-            } catch (IOException e) {
-                compilerContext.errorReporter();
-                // TODO: .error("Failed to process stdlib file: " + path + " - " + e.getMessage());
-            }
-        }
-
-        return contexts;
-    }
-
-    /**
-     * Parses the given source files into compilation contexts, including AST generation.
-     *
-     * @param filesToCompile the list of file paths to parse
-     * @param fileSet        the source file set used for tracking file positions
-     * @return a list of {@code FileCompilationContext} objects for each parsed file
-     */
-    private List<FileCompilationContext> parse(List<Path> filesToCompile, SrcFileSet fileSet) {
-        List<FileCompilationContext> contexts = new ArrayList<>();
-
-        for (Path path : filesToCompile) {
-            try {
-                Optional<ParsedFile> parsedHeader = ParsedFileExtractor.of(path).extract();
-
-                parsedHeader.ifPresentOrElse(
-                        parsedFile -> {
-                            validatePackagePath(path, parsedFile.packageName(), compilerContext.workingDirectory());
-
-                            try {
-                                String source = SourceFile.of(path).source();
-                                contexts.add(compileSingleFile(path, source, fileSet));
-                            } catch (IOException ex) {
-                                compilerContext.errorReporter();
-                                // TODO: .error("Error reading: " + path + " - " + ex.getMessage());
-                            }
-                        },
-                        () -> reportMissingPackage(path)
-                );
-
-            } catch (IOException e) {
-                compilerContext.errorReporter();
-                // TODO: .error("Failed to process file: " + path + " - " + e.getMessage());
-            }
-        }
-
-        return contexts;
     }
 
     /**
@@ -283,39 +238,11 @@ public class CompilerPipeline {
     }
 
     /**
-     * Validates that the package declared in a file matches its directory location.
+     * Reports a missing package declaration for a source file.
      *
-     * @param filePath    the path to the source file
-     * @param packageName the package declared in the file
-     * @param rootDir     the root directory used for stdlib files (can be null if classpath/JAR)
+     * @param path     the path of the source file
+     * @param rootPath the root directory relative to which the path is reported
      */
-    /*private void validatePackagePath(Path filePath, String packageName, Path rootDir) {
-        if (rootDir != null) {
-            // Dev override path
-            Path relative = rootDir.relativize(filePath);
-            String expectedPackage = relative.getParent() != null
-                    ? relative.getParent().toString().replace(File.separatorChar, '.')
-                    : "";
-            if (!expectedPackage.equals(packageName)) {
-                throw new CompilationException(filePath + ": Package `" + packageName +
-                        "` does not match file location `" + expectedPackage + "`");
-            }
-        } else {
-            // Classpath/JAR: paths already match package hierarchy inside JAR
-            // Optional: skip or add a lightweight check if needed
-        }
-    }*/
-
-    /**
-     * Reports a missing package declaration for the given file.
-     *
-     * @param path the path to the file missing a package declaration
-     */
-    private void reportMissingPackage(Path path) {
-        System.err.println("Missing package declaration in file: " +
-                compilerContext.workingDirectory().relativize(path));
-    }
-
     private void reportMissingPackage(Path path, Path rootPath) {
         System.err.println("Missing package declaration in file: " + rootPath.relativize(path));
     }
