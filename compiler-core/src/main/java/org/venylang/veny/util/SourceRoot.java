@@ -67,4 +67,23 @@ public interface SourceRoot {
      * @return {@code true} if this root is a development override, {@code false} otherwise
      */
     boolean isDevOverride();
+
+    /**
+     * Determines whether this source root contains any source files.
+     * <p>
+     * This default implementation checks if the {@link SourceRoot#rootPath()} is non-null and
+     * delegates to {@link FileCollector#isEmpty()} to assess whether any valid source files
+     * are present under the root.
+     * <p>
+     * Implementations may override this method to provide more efficient or context-specific
+     * checks.
+     *
+     * @return {@code true} if the root path is null or no source files are found; {@code false} otherwise
+     */
+    default boolean isEmpty() {
+        if (rootPath() == null) {
+            return true;
+        }
+        return FileCollector.of(rootPath()).isEmpty();
+    }
 }

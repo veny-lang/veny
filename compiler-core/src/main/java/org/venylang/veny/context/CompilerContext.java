@@ -17,6 +17,8 @@
 
 package org.venylang.veny.context;
 
+import org.venylang.veny.imports.ImportResolver;
+import org.venylang.veny.imports.IterativeImportResolver;
 import org.venylang.veny.semantic.SymbolTable;
 import org.venylang.veny.util.ErrorReporter;
 
@@ -30,11 +32,13 @@ public class CompilerContext {
     private final Path workingDirectory;
     private final ErrorReporter errorReporter;
     private final SymbolTable globalSymbols;
+    private final ImportResolver resolver;
 
     public CompilerContext(Path workingDirectory) {
         this.workingDirectory = workingDirectory;
         this.errorReporter = new ErrorReporter();
         this.globalSymbols = new SymbolTable();
+        resolver = new IterativeImportResolver(this.workingDirectory, globalSymbols);
     }
 
     public Path workingDirectory() {
@@ -51,5 +55,9 @@ public class CompilerContext {
 
     public void addGlobalSymbols(SymbolTable symbols) {
         this.globalSymbols.merge(symbols); // Assumes merge is implemented
+    }
+
+    public ImportResolver importResolver() {
+        return resolver;
     }
 }

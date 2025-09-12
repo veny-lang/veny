@@ -49,6 +49,9 @@ public class BuildCommand implements Runnable, CliCommand {
     @CommandLine.Parameters(index = "0", description = "Source directory", defaultValue = ".")
     private File sourceDir;
 
+    @CommandLine.Option(names = {"--stdlib", "--stdlib-path"}, description = "Optional path to stdlib source files")
+    private Path stdLibPath;
+
     /**
      * The entry point called by Picocli when the command is executed from the CLI.
      * This should trigger the compilation process.
@@ -63,24 +66,19 @@ public class BuildCommand implements Runnable, CliCommand {
         // new Compiler().run(new String[]{sourceDir.getAbsolutePath()});
         Path workingDir = Paths.get(sourceDir.getPath());
         CompilerContext compilerContext = new CompilerContext(workingDir);
-        ImportResolver resolver = new IterativeImportResolver(workingDir, compilerContext.globalSymbols());
-        CompilerPipeline pipeline = new CompilerPipeline(compilerContext, resolver);
+        CompilerPipeline pipeline = new CompilerPipeline(compilerContext);
 
         // 1️⃣ Compile stdlib (from a known location)
-        //StdlibLoader loader = new StdlibLoader("veny", Optional.empty());
-        StdlibLoader loader = new StdlibLoader("veny", Optional.of(Paths.get("/home/stoyanp/my-work/veny/stdlib/target/classes/")));
-        //List<SourceFile> files = loader.load();
-        //pipeline.compileStdLib(files, loader.getRoot());
+        StdlibLoader loader = new StdlibLoader("veny", Optional.of(stdLibPath));
         pipeline.compile(loader, false);
 
         // 2️⃣ Compile user project
         FileCollector collector = FileCollector.of(workingDir);
-        if (collector.isEmpty()) {
+        SourceRoot userCode = new UserSourceRoot(workingDir);
+        if (userCode.isEmpty()) {
             System.out.println("No .veny files found in: " + workingDir);
             return;
         }
-
-        SourceRoot userCode = new UserSourceRoot(workingDir);
         pipeline.compile(userCode, true);
     }
 

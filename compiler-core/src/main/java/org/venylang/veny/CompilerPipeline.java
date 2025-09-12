@@ -62,11 +62,10 @@ public class CompilerPipeline {
      * Constructs a new {@code CompilerPipeline} with the given compiler context.
      *
      * @param compilerContext the context containing configuration and shared resources
-     * @param importResolver the import resolver to be used
      */
-    public CompilerPipeline(CompilerContext compilerContext, ImportResolver  importResolver) {
+    public CompilerPipeline(CompilerContext compilerContext) {
         this.compilerContext = compilerContext;
-        this.importResolver = importResolver;
+    this.importResolver = compilerContext.importResolver();
     }
 
     /**
