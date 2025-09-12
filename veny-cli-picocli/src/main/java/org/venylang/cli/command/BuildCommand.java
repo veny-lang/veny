@@ -19,15 +19,12 @@ package org.venylang.cli.command;
 
 import org.venylang.veny.CompilerPipeline;
 import org.venylang.veny.context.CompilerContext;
-import org.venylang.veny.imports.ImportResolver;
-import org.venylang.veny.imports.IterativeImportResolver;
 import org.venylang.veny.util.*;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -63,7 +60,6 @@ public class BuildCommand implements Runnable, CliCommand {
 
     @Override
     public void execute() {
-        // new Compiler().run(new String[]{sourceDir.getAbsolutePath()});
         Path workingDir = Paths.get(sourceDir.getPath());
         CompilerContext compilerContext = new CompilerContext(workingDir);
         CompilerPipeline pipeline = new CompilerPipeline(compilerContext);
@@ -73,7 +69,6 @@ public class BuildCommand implements Runnable, CliCommand {
         pipeline.compile(loader, false);
 
         // 2️⃣ Compile user project
-        FileCollector collector = FileCollector.of(workingDir);
         SourceRoot userCode = new UserSourceRoot(workingDir);
         if (userCode.isEmpty()) {
             System.out.println("No .veny files found in: " + workingDir);
