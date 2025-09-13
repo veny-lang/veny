@@ -18,24 +18,18 @@
 package org.venylang.veny.imports;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.venylang.veny.semantic.Symbol;
-import org.venylang.veny.semantic.SymbolTable;
+import org.venylang.veny.semantic.symbols.GlobalScope;
+import org.venylang.veny.util.UserSourceRoot;
 import org.venylang.veny.util.Visibility;
 
 /**
@@ -49,11 +43,11 @@ class IterativeImportResolverTest {
 
     @TempDir
     Path srcRoot;
-    private SymbolTable symbolTable;
+    private GlobalScope globalScope;
 
     @BeforeEach
     void setUp() {
-        symbolTable = new SymbolTable();
+    globalScope = new GlobalScope();
     }
 
     /**
@@ -61,7 +55,7 @@ class IterativeImportResolverTest {
      * tests focus solely on import traversal and bookkeeping.
      */
     private IterativeImportResolver newResolver() {
-        return new TestableResolver(srcRoot, symbolTable);
+        return new TestableResolver(srcRoot, globalScope);
     }
 
     //@Test TODO
@@ -78,8 +72,8 @@ class IterativeImportResolverTest {
         resolver.resolveImports(List.of(console));
 
         // Assert – both classes should now be in the global symbol table
-        assertNotNull(symbolTable.resolve("veny.lang.Console"));
-        assertNotNull(symbolTable.resolve("veny.lang.String"));
+        assertNotNull(globalScope.resolve("veny.lang.Console"));
+        assertNotNull(globalScope.resolve("veny.lang.String"));
     }
 
     //@Test TODO
@@ -117,8 +111,9 @@ class IterativeImportResolverTest {
 
     private static class TestableResolver extends IterativeImportResolver {
 
-        TestableResolver(Path sourceRoot, SymbolTable globalTable) {
-            super(sourceRoot, globalTable);
+        TestableResolver(Path sourceRoot, GlobalScope globalScope) {
+
+            super(List.of(new UserSourceRoot(sourceRoot)), globalScope);
         }
 
         protected AstNode compileFileToAST(Path filePath) {

@@ -20,12 +20,10 @@ package org.venylang.veny.semantic;
 import org.venylang.veny.parser.ast.*;
 import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
-import org.venylang.veny.semantic.symbols.ClassSymbol;
-import org.venylang.veny.semantic.symbols.GlobalScope;
-import org.venylang.veny.semantic.symbols.MethodSymbol;
-import org.venylang.veny.semantic.symbols.VariableSymbol;
+import org.venylang.veny.semantic.symbols.*;
 import org.venylang.veny.semantic.types.BuiltinType;
 import org.venylang.veny.semantic.types.ClassType;
+import org.venylang.veny.semantic.types.InterfaceType;
 import org.venylang.veny.semantic.types.TypeResolver;
 import org.venylang.veny.util.Visibility;
 
@@ -53,7 +51,12 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     private final List<String> errors = new ArrayList<>();
 
     /** The global (top-level) scope shared across all files. */
-    private final GlobalScope globalScope = new GlobalScope();
+    private final GlobalScope globalScope;
+
+    public SemanticAnalyzer(GlobalScope globalScope) {
+        this.globalScope = globalScope;
+        enterScope(globalScope);
+    }
 
     /**
      * Returns the list of semantic errors encountered during analysis.
@@ -71,6 +74,10 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     public ClassSymbol resolveClass(String name) {
         Symbol sym = globalScope.resolve(name);
         return (sym instanceof ClassSymbol cls) ? cls : null;
+    }
+
+    public Symbol resolveSymbol(String name) {
+        return globalScope.resolve(name);
     }
 
     /** @return the current (top of the stack) scope */
@@ -119,11 +126,9 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(Program node) {
-        enterScope(globalScope);
         for (VenyFile file : node.files()) {
             file.accept(this);
         }
-        exitScope();
         return null;
     }
 
@@ -164,8 +169,25 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
 
     @Override
     public Void visit(InterfaceDecl node) {
-        return null;
-    }
+        if (currentScope() != globalScope) {
+            throw new IllegalStateException("Interfaces must be declared in the global scope.");
+        }
+
+        if (globalScope.resolveLocal(node.name()) != null) {
+            throw new SemanticException("Interface '" + node.name() + "' is already defined.");
+        }
+
+        InterfaceSymbol ifaceSymbol = new InterfaceSymbol(node.name(), globalScope);
+        globalScope.define(ifaceSymbol);
+        enterScope(ifaceSymbol);
+
+        // Visit interface members (methods only)
+        for (MethodDecl method : node.methods()) {
+            method.accept(this);
+        }
+
+        exitScope();
+        return null;    }
 
     /** {@inheritDoc} */
     @Override
@@ -200,13 +222,30 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         enterScope(method);
 
         for (MethodDecl.Parameter param : node.parameters()) {
-            // TODO: Add parameters to scope
+            // 1. Resolve the type of the parameter
+            Type paramType = resolveType(param.type());
+
+            // 2. Create a variable symbol
+            VariableSymbol paramSymbol = new VariableSymbol(
+                    param.name(),
+                    paramType,
+                    Visibility.PUBLIC, // parameters are usually accessible within the method
+                    true,  // isParameter
+                    false  // not a val by default (or adjust based on your language rules)
+            );
+
+            // 3. Define it in the current (method) scope
+            currentScope().define(paramSymbol);
         }
 
-        for (Statement stmt : node.body()) {
-            stmt.accept(this);
+        // Only visit the body if it exists (interfaces will have null)
+        if (node.body() != null) {
+            for (Statement stmt : node.body()) {
+                stmt.accept(this);
+            }
         }
 
+        // Exit method scope
         exitScope();
         return null;
     }
@@ -386,6 +425,10 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         Symbol sym = currentScope().resolve(typeName);
         if (sym instanceof ClassSymbol clsSym) {
             return new ClassType(clsSym);
+        }
+
+        if (sym instanceof InterfaceSymbol ifaceSym) {
+            return new InterfaceType(ifaceSym);
         }
 
         error("Unknown type: " + typeName);

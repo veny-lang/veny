@@ -102,6 +102,25 @@ public class StdlibLoader implements SourceRoot {
         return devOverridePath.orElse(null);
     }
 
+    @Override
+    public Optional<SourceFile> findSourceFile(String fqcn) throws IOException {
+        String resourceName = fqcn.replace('.', '/') + ".veny";
+
+        if (devOverridePath.isPresent()) {
+            Path fullPath = devOverridePath.get().resolve(resourceName);
+            if (Files.exists(fullPath)) {
+                return Optional.of(SourceFile.of(fullPath));
+            }
+        } else {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            InputStream is = cl.getResourceAsStream(resourceName);
+            if (is != null) {
+                return Optional.of(SourceFile.of(resourceName, is));
+            }
+        }
+        return Optional.empty();
+    }
+
     /**
      * Attempts to load stdlib source files from the classpath (e.g., JAR resources or filesystem).
      *

@@ -20,6 +20,7 @@ package org.venylang.veny.util;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Represents a logical root of Veny source files, such as the standard library
@@ -85,5 +86,20 @@ public interface SourceRoot {
             return true;
         }
         return FileCollector.of(rootPath()).isEmpty();
+    }
+
+    /**
+     * Finds a single source file by fully qualified class name (FQCN).
+     * Returns an empty Optional if the file cannot be found in this root.
+     */
+    default Optional<SourceFile> findSourceFile(String fqcn) throws IOException {
+        // Default: fallback implementation based on loadSources
+        String expectedPath = fqcn.replace('.', '/') + ".veny";
+        for (SourceFile sf : loadSources()) {
+            if (sf.path().toString().endsWith(expectedPath)) {
+                return Optional.of(sf);
+            }
+        }
+        return Optional.empty();
     }
 }

@@ -24,6 +24,7 @@ import org.venylang.veny.parser.RecursiveDescentParser;
 import org.venylang.veny.parser.ast.Program;
 import org.junit.jupiter.api.Test;
 import org.venylang.veny.parser.ast.VenyFile;
+import org.venylang.veny.semantic.symbols.GlobalScope;
 import org.venylang.veny.util.source.SrcFilePosMap;
 import org.venylang.veny.util.source.SrcFileSet;
 
@@ -63,7 +64,7 @@ public class SemanticAnalyzerTest {
         List<Token> tokens = lexer.scanTokens();
         RecursiveDescentParser parser = new RecursiveDescentParser(tokens, context);
         VenyFile parsedUnit = parser.parse();
-        new SemanticAnalyzer().visit(Program.of(parsedUnit));
+        new SemanticAnalyzer(new GlobalScope()).visit(Program.of(parsedUnit));
     }
 
     @Test

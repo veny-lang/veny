@@ -25,6 +25,7 @@ import picocli.CommandLine;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -61,15 +62,15 @@ public class BuildCommand implements Runnable, CliCommand {
     @Override
     public void execute() {
         Path workingDir = Paths.get(sourceDir.getPath());
-        CompilerContext compilerContext = new CompilerContext(workingDir);
+        StdlibLoader loader = new StdlibLoader("veny", Optional.of(stdLibPath));
+        SourceRoot userCode = new UserSourceRoot(workingDir);
+        CompilerContext compilerContext = new CompilerContext(List.of(userCode, loader));
         CompilerPipeline pipeline = new CompilerPipeline(compilerContext);
 
         // 1️⃣ Compile stdlib (from a known location)
-        StdlibLoader loader = new StdlibLoader("veny", Optional.of(stdLibPath));
         pipeline.compile(loader, false);
 
         // 2️⃣ Compile user project
-        SourceRoot userCode = new UserSourceRoot(workingDir);
         if (userCode.isEmpty()) {
             System.out.println("No .veny files found in: " + workingDir);
             return;

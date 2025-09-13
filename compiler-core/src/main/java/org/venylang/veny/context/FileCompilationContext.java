@@ -18,23 +18,31 @@
 package org.venylang.veny.context;
 
 import org.venylang.veny.parser.ast.VenyFile;
-import org.venylang.veny.semantic.SymbolTable;
+import org.venylang.veny.semantic.Scope;
+import org.venylang.veny.semantic.symbols.BaseScope;
 
 /**
  * Represents per-file compiler state during semantic analysis and code generation.
  */
 public class FileCompilationContext {
-//import org.venylang.veny.parser.ast.AstNode;
 
     private final CompilerContext compilerContext;
     private final ParseContext parseContext;
-    private final SymbolTable localSymbols;
+    private final Scope fileScope;
     private VenyFile ast;
 
     public FileCompilationContext(CompilerContext compilerContext, ParseContext parseContext) {
         this.compilerContext = compilerContext;
         this.parseContext = parseContext;
-        this.localSymbols = new SymbolTable(); // local (per-file) scope
+
+        // Each file has its own scope chained to the global scope
+        this.fileScope = new BaseScope(compilerContext.getGlobalScope()) {
+
+            @Override
+            public String getScopeName() {
+                return "file:" + parseContext.filePath().toString();
+            }
+        };
     }
 
     public CompilerContext getProjectContext() {
@@ -45,8 +53,8 @@ public class FileCompilationContext {
         return parseContext;
     }
 
-    public SymbolTable getLocalSymbols() {
-        return localSymbols;
+    public Scope getFileScope() {
+        return fileScope;
     }
 
     public VenyFile getAST() {

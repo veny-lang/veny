@@ -22,19 +22,20 @@ import org.venylang.veny.lexer.Lexer;
 import org.venylang.veny.lexer.Token;
 import org.venylang.veny.parser.ParseException;
 import org.venylang.veny.parser.RecursiveDescentParser;
+import org.venylang.veny.parser.ast.AstNode;
 import org.venylang.veny.parser.ast.ClassDecl;
 import org.venylang.veny.parser.ast.InterfaceDecl;
 import org.venylang.veny.parser.ast.VenyFile;
 import org.venylang.veny.semantic.SemanticAnalyzer;
 import org.venylang.veny.semantic.SemanticException;
-import org.venylang.veny.semantic.symbols.ClassSymbol;
-import org.venylang.veny.parser.ast.AstNode;
-import org.venylang.veny.semantic.SymbolTable;
+import org.venylang.veny.semantic.Symbol;
+import org.venylang.veny.semantic.symbols.GlobalScope;
+import org.venylang.veny.util.SourceFile;
+import org.venylang.veny.util.SourceRoot;
 import org.venylang.veny.util.source.SrcFilePosMap;
 import org.venylang.veny.util.source.SrcFileSet;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -46,32 +47,32 @@ import java.util.*;
  * <p>
  * This implementation also detects and reports circular import dependencies.
  */
-public class IterativeImportResolver implements ImportResolver {
+public class IterativeImportResolver implements ImportResolver{
 
-    /** The root directory where source files are located. */
-    private final Path sourceRoot;
+    /** The roots where source files are located (stdlib, user code, etc.). */
+    private final List<SourceRoot> sourceRoots;
 
-    /** The global symbol table used to store and resolve class definitions. */
-    private final SymbolTable globalClassTable;
+    /** The global scope where all class/interface symbols are registered. */
+    private final GlobalScope globalScope;
 
-    /** Cache: fully–qualified class name → source file path. Filled lazily. */
+    /** Cache: fully–qualified class name → source file path. */
     private final Map<String, Path> packageIndex = new HashMap<>();
 
-    /** Tracks files that have already been fully compiled and processed. */
+    /** Tracks files already fully compiled. */
     private final Set<Path> compiledFiles = new HashSet<>();
 
-    /** Tracks files currently being compiled to detect circular imports. */
+    /** Tracks files currently being compiled (for circular import detection). */
     private final Set<Path> compilingNow = new HashSet<>();
 
     /**
      * Constructs a new {@code IterativeImportResolver}.
      *
-     * @param sourceRoot the root directory containing source files
-     * @param globalClassTable the symbol table used for storing resolved class symbols
+     * @param sourceRoots available source files
+     * @param globalScope the symbol table used for storing resolved class/interface symbols
      */
-    public IterativeImportResolver(Path sourceRoot, SymbolTable globalClassTable) {
-        this.sourceRoot = sourceRoot;
-        this.globalClassTable = globalClassTable;
+    public IterativeImportResolver(List<SourceRoot> sourceRoots, GlobalScope globalScope) {
+        this.sourceRoots = sourceRoots;
+        this.globalScope = globalScope;
     }
 
     /**
@@ -92,86 +93,143 @@ public class IterativeImportResolver implements ImportResolver {
             ImportRecord imp = queue.poll();
             String fqcn = imp.packageName() + "." + imp.className();
 
-            Path filePath = locateSourceFile(fqcn, imp.packageName());
+            Path filePath = locateSourceFile(fqcn);
 
             if (compiledFiles.contains(filePath)) {
                 continue;
             }
-
             if (compilingNow.contains(filePath)) {
-                throw new CircularImportException("Circular import detected: " + filePath);
+                throw new CircularImportException("Circular import detected: " + fqcn);
             }
 
             compilingNow.add(filePath);
 
-            // Step 1: Parse file to AST
+            // Step 1: Parse to AST
             AstNode ast = compileFileToAST(filePath);
 
             // Step 2: Extract nested imports
             List<ImportRecord> childImports = extractImports(ast);
             queue.addAll(childImports);
 
-            // Step 3: Analyze class and extract symbol
-            ClassSymbol classSym = analyzeAndExtractSymbols(ast, imp);
+            // Step 3: Analyze and extract symbol (can be ClassSymbol or InterfaceSymbol)
+            Symbol typeSym = analyzeAndExtractSymbols(ast, imp);
 
-            // Step 4: Register class symbol
-            String fullName = imp.packageName() + "." + imp.className();
-            if (globalClassTable.resolve(fullName) != null) {
-                throw new ImportResolutionException("Duplicate class: " + fullName);
+            // Step 4: Register symbol in global table
+            if (globalScope.resolve(fqcn) != null) {
+                throw new ImportResolutionException("Duplicate class: " + fqcn);
             }
+            //typeSym.setName(fqcn); // Optional: ensure FQCN stored
+            globalScope.define(typeSym);
 
-            globalClassTable.define(fullName, classSym);
-
-            // Step 5: Mark file as compiled
+            // Step 5: Mark as compiled
             compiledFiles.add(filePath);
             compilingNow.remove(filePath);
         }
     }
 
     /**
-     * Locates the source file for the given FQCN, populating the package index if necessary.
+     * Locates the source file for the given fully-qualified class name.
      *
-     * @param fqcn         fully‑qualified class name
-     * @param packageName  package portion of the FQCN
+     * @param fqcn fully-qualified class name
      * @return path to the source file
-     * @throws ImportResolutionException if the file cannot be found
+     * @throws ImportResolutionException if not found
      */
-    private Path locateSourceFile(String fqcn, String packageName) throws ImportResolutionException {
-        Path path = packageIndex.get(fqcn);
-        if (path != null) {
-            return path;
+    private Path locateSourceFile(String fqcn) throws ImportResolutionException {
+        // 1. Cache lookup
+        Path cached = packageIndex.get(fqcn);
+        if (cached != null) {
+            return cached;
         }
 
-        Path packageDir = sourceRoot.resolve(packageName.replace('.', '/'));
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(packageDir, "*.veny")) {
-            for (Path p : stream) {
-                AstNode ast = compileFileToAST(p);
-                if (!(ast instanceof VenyFile venyFile)) continue;
-
-                for (ClassDecl cls : venyFile.classes()) {
-                    String declaredFqcn = venyFile.packageName() + "." + cls.name();
-                    packageIndex.put(declaredFqcn, p);
+        // 2. Query each SourceRoot
+        for (SourceRoot root : sourceRoots) {
+            try {
+                Optional<SourceFile> sourceFile = root.findSourceFile(fqcn);
+                if (sourceFile.isPresent()) {
+                    Path path = sourceFile.get().path();
+                    packageIndex.put(fqcn, path);
+                    return path;
                 }
-                for (InterfaceDecl iface : venyFile.interfaces()) {
-                    String declaredFqcn = venyFile.packageName() + "." + iface.name();
-                    packageIndex.put(declaredFqcn, p);
-                }
+            } catch (IOException e) {
+                throw new ImportResolutionException(
+                        "Error while searching for " + fqcn + " in " + root.rootPath(), e
+                );
             }
-        } catch (IOException e) {
-            throw new ImportResolutionException("Failed to scan package directory: " + packageDir);
         }
 
-        path = packageIndex.get(fqcn);
-        if (path == null) {
-            throw new ImportResolutionException("Class not found: " + fqcn);
-        }
-
-        return path;
+        // 3. Fail if not found
+        throw new ImportResolutionException("Class not found: " + fqcn);
     }
 
-    private String stripExtension(String filename) {
-        int dotIndex = filename.lastIndexOf('.');
-        return (dotIndex == -1) ? filename : filename.substring(0, dotIndex);
+    /**
+     * Performs semantic analysis on the AST and extracts the class symbol.
+     *
+     * @param ast the AST representing the class
+     * @param imp the associated import record
+     * @return the extracted class symbol
+     */
+    private Symbol analyzeAndExtractSymbols(AstNode ast, ImportRecord imp) throws  ImportResolutionException {
+        if (!(ast instanceof VenyFile venyFile)) {
+            throw new IllegalArgumentException("Expected a VenyFile AST node");
+        }
+
+        // Look for a matching class or interface
+        AstNode targetDecl = null;
+
+        // Find class first
+        for (ClassDecl cls : venyFile.classes()) {
+            if (cls.name().equals(imp.className())) {
+                targetDecl = cls;
+                break;
+            }
+        }
+
+        // If not found, look for interface
+        if (targetDecl == null) {
+            for (InterfaceDecl iface : venyFile.interfaces()) {
+                if (iface.name().equals(imp.className())) {
+                    targetDecl = iface;
+                    break;
+                }
+            }
+        }
+
+        if (targetDecl == null) {
+            throw new ImportResolutionException("Type " + imp.className() + " not found in file.");
+        }
+
+        SemanticAnalyzer analyzer = new SemanticAnalyzer(globalScope);
+        targetDecl.accept(analyzer);
+
+        Symbol symbol = analyzer.resolveSymbol(imp.className());
+        if (symbol == null) {
+            throw new SemanticException("Failed to extract symbol for: " + imp.className());
+        }
+
+        return symbol;
+    }
+
+    /**
+     * Extracts import statements from the given AST.
+     *
+     * @param ast the abstract syntax tree of a source file
+     * @return a list of import records found in the AST
+     */
+    private List<ImportRecord> extractImports(AstNode ast) {
+        if (!(ast instanceof VenyFile venyFile)) {
+            throw new IllegalArgumentException("Expected VenyFile AST node");
+        }
+
+        return venyFile.imports().stream()
+                .map(String::trim)
+                .filter(fqcn -> fqcn.contains("."))
+                .map(fqcn -> {
+                    int dot = fqcn.lastIndexOf('.');
+                    String pkg = fqcn.substring(0, dot);
+                    String cls = fqcn.substring(dot + 1);
+                    return new ImportRecord(pkg, cls);
+                })
+                .toList();
     }
 
     /**
@@ -203,68 +261,5 @@ public class IterativeImportResolver implements ImportResolver {
         } catch (ParseException e) {
             throw new ImportResolutionException("Failed to parse file: " + filePath, e);
         }
-    }
-
-    /**
-     * Extracts import statements from the given AST.
-     *
-     * @param ast the abstract syntax tree of a source file
-     * @return a list of import records found in the AST
-     */
-    private List<ImportRecord> extractImports(AstNode ast) {
-        if (!(ast instanceof VenyFile venyFile)) {
-            throw new IllegalArgumentException("Expected VenyFile AST node");
-        }
-
-        return venyFile.imports().stream()
-            .map(String::trim)
-            .filter(fqcn -> fqcn.contains("."))
-            .map(fqcn -> {
-                int dot = fqcn.lastIndexOf('.');
-                String pkg = fqcn.substring(0, dot);
-                String cls = fqcn.substring(dot + 1);
-                return new ImportRecord(pkg, cls);
-            })
-            .toList();
-    }
-
-    /**
-     * Performs semantic analysis on the AST and extracts the class symbol.
-     *
-     * @param ast the AST representing the class
-     * @param imp the associated import record
-     * @return the extracted class symbol
-     */
-    private ClassSymbol analyzeAndExtractSymbols(AstNode ast, ImportRecord imp) throws  ImportResolutionException {
-        if (!(ast instanceof VenyFile venyFile)) {
-            throw new IllegalArgumentException("Expected a VenyFile AST node");
-        }
-
-        // Step 1: Find the matching ClassDecl
-        ClassDecl targetClass = null;
-        for (ClassDecl cls : venyFile.classes()) {
-            if (cls.name().equals(imp.className())) {
-                targetClass = cls;
-                break;
-            }
-        }
-
-        if (targetClass == null) {
-            throw new ImportResolutionException("Class " + imp.className() + " not found in file.");
-        }
-
-        // Step 2: Analyze the ClassDecl to extract symbols
-        SemanticAnalyzer analyzer = new SemanticAnalyzer();
-        // Manually visit just the class (not the whole file/program)
-        targetClass.accept(analyzer);
-
-        // Step 3: Get the class symbol from the global scope
-        ClassSymbol symbol = analyzer.resolveClass(imp.className());
-
-        if (symbol == null) {
-            throw new SemanticException("Failed to extract symbol for class: " + imp.className());
-        }
-
-        return symbol;
     }
 }

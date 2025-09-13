@@ -156,6 +156,13 @@ public class CompilerPipeline {
                 })
                 .toList();
 
+        // 🔥 Resolve all imports here
+        try {
+            importResolver.resolveImports(imports);
+        } catch (ImportResolutionException e) {
+            throw new RuntimeException("Failed to resolve imports", e);
+        }
+
         /** TODO: Uncomment and implement semantic analysis
          * SemanticAnalyzer analyzer =
          *     new SemanticAnalyzer(projectContext.globalSymbols(), projectContext.errorReporter());

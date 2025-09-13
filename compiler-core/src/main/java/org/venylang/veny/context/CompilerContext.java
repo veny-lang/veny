@@ -19,45 +19,45 @@ package org.venylang.veny.context;
 
 import org.venylang.veny.imports.ImportResolver;
 import org.venylang.veny.imports.IterativeImportResolver;
-import org.venylang.veny.semantic.SymbolTable;
+import org.venylang.veny.semantic.Symbol;
+import org.venylang.veny.semantic.symbols.GlobalScope;
 import org.venylang.veny.util.ErrorReporter;
+import org.venylang.veny.util.SourceRoot;
 
-import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Project-wide compiler context. Holds shared state across all files being compiled.
  */
 public class CompilerContext {
 
-    private final Path workingDirectory;
+    private final List<SourceRoot> sourceRoots;
     private final ErrorReporter errorReporter;
-    private final SymbolTable globalSymbols;
     private final ImportResolver resolver;
+    private final GlobalScope globalScope;
 
-    public CompilerContext(Path workingDirectory) {
-        this.workingDirectory = workingDirectory;
+    public CompilerContext(List<SourceRoot> sourceRoots) {
         this.errorReporter = new ErrorReporter();
-        this.globalSymbols = new SymbolTable();
-        resolver = new IterativeImportResolver(this.workingDirectory, globalSymbols);
-    }
-
-    public Path workingDirectory() {
-        return workingDirectory;
+        this.globalScope = new GlobalScope();
+        this.sourceRoots = sourceRoots;
+        resolver  = new IterativeImportResolver(sourceRoots, globalScope);
     }
 
     public ErrorReporter errorReporter() {
         return errorReporter;
     }
 
-    public SymbolTable globalSymbols() {
-        return globalSymbols;
+    public void addGlobalSymbol(Symbol symbol) {
+        globalScope.define(symbol);
     }
 
-    public void addGlobalSymbols(SymbolTable symbols) {
-        this.globalSymbols.merge(symbols); // Assumes merge is implemented
+    public GlobalScope getGlobalScope() {
+        return globalScope;
     }
 
     public ImportResolver importResolver() {
         return resolver;
     }
+
+    public List<SourceRoot> sourceRoots() { return sourceRoots; }
 }

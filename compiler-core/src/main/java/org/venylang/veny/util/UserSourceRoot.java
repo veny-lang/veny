@@ -20,8 +20,10 @@ package org.venylang.veny.util;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class UserSourceRoot implements SourceRoot{
     private final Path basePath;
@@ -56,5 +58,16 @@ public class UserSourceRoot implements SourceRoot{
     @Override
     public boolean isDevOverride() {
         return false;
+    }
+
+    @Override
+    public Optional<SourceFile> findSourceFile(String fqcn) throws IOException {
+        Path relative = Paths.get(fqcn.replace('.', '/') + ".veny");
+        Path fullPath = basePath.resolve(relative);
+
+        if (Files.exists(fullPath)) {
+            return Optional.of(SourceFile.of(fullPath));
+        }
+        return Optional.empty();
     }
 }
