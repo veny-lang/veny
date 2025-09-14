@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.venylang.veny.semantic.Symbol;
 import org.venylang.veny.semantic.symbols.GlobalScope;
-import org.venylang.veny.util.UserSourceRoot;
 import org.venylang.veny.util.Visibility;
 
 /**
@@ -113,7 +112,7 @@ class IterativeImportResolverTest {
 
         TestableResolver(Path sourceRoot, GlobalScope globalScope) {
 
-            super(List.of(new UserSourceRoot(sourceRoot)), globalScope);
+            super(globalScope);
         }
 
         protected AstNode compileFileToAST(Path filePath) {

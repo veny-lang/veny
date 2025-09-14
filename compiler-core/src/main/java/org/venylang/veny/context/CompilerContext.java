@@ -40,7 +40,7 @@ public class CompilerContext {
         this.errorReporter = new ErrorReporter();
         this.globalScope = new GlobalScope();
         this.sourceRoots = sourceRoots;
-        resolver  = new IterativeImportResolver(sourceRoots, globalScope);
+        resolver  = new IterativeImportResolver(globalScope);
     }
 
     public ErrorReporter errorReporter() {

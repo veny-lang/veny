@@ -1,0 +1,128 @@
+@startuml
+'https://plantuml.com/class-diagram
+title Veny Compiler Class Diagram
+
+'====================
+' Interfaces
+'====================
+interface ImportResolver {
+  + resolveImports(imports: List<ImportRecord>)
+}
+
+interface SourceRoot {
+  + Path rootPath()
+  + List<SourceFile> loadSources()
+  + boolean isDevOverride()
+  + Optional<SourceFile> findSourceFile(fqcn: String)
+}
+
+'====================
+' Core Compiler
+'====================
+class CompilerPipeline {
+  - CompilerContext compilerContext
+  - ImportResolver importResolver
+  - AtomicBoolean indexed
+  - Map<Path, VenyFile> astCache
+
+  + compile(sourceRoot: SourceRoot, generateCode: boolean)
+  - ensureIndexed()
+  - indexAllSources()
+  - indexFile(sourceFile: SourceFile)
+  - parseFiles(sources: List<SourceFile>): List<FileCompilationContext>
+  - processCompilation(contexts: List<FileCompilationContext>, generateCode: boolean)
+  - parseAndCache(path: Path, source: String): VenyFile
+  - parseSingleFile(source: String, context: ParseContext): VenyFile
+  - defineSymbol(globalScope: GlobalScope, fqcn: String, symbol: Symbol)
+}
+
+class IterativeImportResolver {
+  - GlobalScope globalScope
+  + resolveImports(imports: List<ImportRecord>)
+}
+
+class CompilerContext {
+  - List<SourceRoot> sourceRoots
+  - ErrorReporter errorReporter
+  - ImportResolver resolver
+  - GlobalScope globalScope
+
+  + CompilerContext(sourceRoots: List<SourceRoot>)
+  + errorReporter(): ErrorReporter
+  + addGlobalSymbol(symbol: Symbol)
+  + getGlobalScope(): GlobalScope
+  + importResolver(): ImportResolver
+  + sourceRoots(): List<SourceRoot>
+}
+
+'====================
+' Source Root Implementations
+'====================
+class StdlibLoader {
+  - String basePackage
+  - Optional<Path> devOverridePath
+  - String resourcePath
+
+  + StdlibLoader(basePackage: String, devOverridePath: Optional<Path>)
+  + Path rootPath()
+  + boolean isDevOverride()
+  + List<SourceFile> loadSources()
+  + Optional<SourceFile> findSourceFile(fqcn: String)
+}
+
+class UserSourceRoot {
+  - Path basePath
+
+  + UserSourceRoot(basePath: Path)
+  + Path rootPath()
+  + List<SourceFile> loadSources()
+  + boolean isDevOverride()
+  + Optional<SourceFile> findSourceFile(fqcn: String)
+}
+
+'====================
+' Supporting Classes
+'====================
+class SourceFile {
+  + path(): Path
+  + source(): String
+}
+
+class GlobalScope {
+  + resolve(name: String): Symbol
+  + resolveLocal(name: String): Symbol
+  + define(symbol: Symbol)
+}
+
+class Symbol
+class ImportRecord
+class VenyFile
+class FileCompilationContext
+class ParseContext
+class ErrorReporter
+
+'====================
+' Relationships
+'====================
+CompilerPipeline --> CompilerContext
+CompilerPipeline --> ImportResolver
+CompilerPipeline --> SourceRoot
+CompilerPipeline --> FileCompilationContext
+CompilerPipeline --> SourceFile
+CompilerPipeline --> VenyFile
+
+IterativeImportResolver ..|> ImportResolver
+IterativeImportResolver --> GlobalScope
+
+CompilerContext --> SourceRoot
+CompilerContext --> GlobalScope
+CompilerContext --> ErrorReporter
+CompilerContext --> ImportResolver
+
+StdlibLoader ..|> SourceRoot
+UserSourceRoot ..|> SourceRoot
+SourceRoot --> SourceFile
+
+GlobalScope --> Symbol
+
+@enduml

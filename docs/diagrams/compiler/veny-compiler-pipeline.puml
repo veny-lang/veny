@@ -1,37 +1,57 @@
 @startuml
-title Veny Compiler Pipeline (Stdlib vs User Code)
+title Veny Compiler Pipeline (with Indexing Pass)
 
-package "Frontend" {
-    [Veny Source Files] --> [Parser]
-    [Parser] --> [AST]
-    [AST] --> [Semantic Analyzer]
-    [Semantic Analyzer] --> [Validated AST]
+package "Compiler Pipeline" {
+  [SourceRoot (Stdlib)]
+  [SourceRoot (User Code)]
+  [CompilerPipeline]
+  [CompilerContext]
+  [ImportResolver]
+  [Global Symbol Table]
+}
+
+package "Indexing Phase (Once)" {
+  [SourceRoot (Stdlib)] --> [Indexing Pass]
+  [SourceRoot (User Code)] --> [Indexing Pass]
+  [Indexing Pass] --> [Global Symbol Table]
+  note right of [Indexing Pass]
+    Parses each file once
+    Registers classes/interfaces
+    Populates symbol table
+    ASTs cached
+  end note
+}
+
+package "Compilation Phase" {
+  [Global Symbol Table] --> [ImportResolver]
+  [ImportResolver] --> [Semantic Analyzer]
+  [Semantic Analyzer] --> [Validated AST]
 }
 
 package "Stdlib Flow" {
-    [Validated AST] --> [Symbol Table / Type Info]
-    note right of [Symbol Table / Type Info]
-      Stdlib contributes types and
-      symbols for user programs,
-      but no code is generated.
-    end note
+  [Validated AST] --> [Symbol Table / Type Info]
+  note right of [Symbol Table / Type Info]
+    Stdlib contributes types
+    and symbols only.
+    No code generated.
+  end note
 }
 
 package "User Code Flow" {
-    [Validated AST] --> [Java Code Generator]
-    [Java Code Generator] --> [Generated Java Files]
-    [Generated Java Files] --> [javac Compilation]
-    [javac Compilation] --> [Java Class Files]
+  [Validated AST] --> [Java Code Generator]
+  [Java Code Generator] --> [Generated Java Files]
+  [Generated Java Files] --> [javac Compilation]
+  [javac Compilation] --> [Java Class Files]
 }
 
 package "Optional Native Output" {
-    [Java Class Files] --> [GraalVM native-image]
-    [GraalVM native-image] --> [Native Binary]
+  [Java Class Files] --> [GraalVM native-image]
+  [GraalVM native-image] --> [Native Binary]
 }
 
 package "Execution" {
-    [Java Class Files] --> [JVM Execution]
-    [Native Binary] --> [OS Execution]
+  [Java Class Files] --> [JVM Execution]
+  [Native Binary] --> [OS Execution]
 }
 
 @enduml
