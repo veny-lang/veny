@@ -1,0 +1,89 @@
+@startuml
+title BuildCommand.execute() - CompilerPipeline Sequence
+
+actor Developer
+participant BuildCommand
+participant CompilerPipeline
+participant CompilerContext
+participant SourceRoot as UserSourceRoot
+participant SourceRoot as StdlibLoader
+participant GlobalScope
+participant ImportResolver
+participant ErrorReporter
+
+Developer -> BuildCommand: execute()
+activate BuildCommand
+
+BuildCommand -> StdlibLoader: new StdlibLoader("veny", stdLibPath)
+BuildCommand -> UserSourceRoot: new UserSourceRoot(workingDir)
+BuildCommand -> CompilerContext: new CompilerContext(List.of(userCode, loader))
+BuildCommand -> CompilerPipeline: new CompilerPipeline(compilerContext)
+
+note right of CompilerPipeline
+  CompilerPipeline holds:
+  - CompilerContext
+  - ImportResolver
+  - AtomicBoolean indexed
+  - AST Cache
+end note
+
+== Compile Stdlib ==
+BuildCommand -> CompilerPipeline: compile(loader, false)
+activate CompilerPipeline
+
+CompilerPipeline -> CompilerPipeline: ensureIndexed()
+CompilerPipeline -> CompilerPipeline: indexAllSources()
+loop For each SourceRoot
+  CompilerPipeline -> StdlibLoader: loadSources()
+  StdlibLoader --> CompilerPipeline: List<SourceFile>
+  CompilerPipeline -> CompilerPipeline: indexFile(SourceFile)
+  CompilerPipeline -> GlobalScope: define(Symbol)
+end loop
+
+== Parse & Process Stdlib ==
+CompilerPipeline -> StdlibLoader: loadSources()
+StdlibLoader --> CompilerPipeline: List<SourceFile>
+CompilerPipeline -> CompilerPipeline: parseFiles(sources)
+CompilerPipeline -> CompilerPipeline: processCompilation(contexts, false)
+
+CompilerPipeline -> ImportResolver: resolveImports(imports)
+ImportResolver -> GlobalScope: resolve(fqcn)
+ImportResolver --> CompilerPipeline: OK
+
+CompilerPipeline -> ErrorReporter: hasErrors()
+alt Errors exist
+  CompilerPipeline --> BuildCommand: abort
+else
+  CompilerPipeline --> BuildCommand: stdlib done
+end
+
+deactivate CompilerPipeline
+
+== Compile User Code ==
+alt No .veny files
+  BuildCommand -> BuildCommand: print("No .veny files found")
+else
+  BuildCommand -> CompilerPipeline: compile(userCode, true)
+  activate CompilerPipeline
+
+  CompilerPipeline -> UserSourceRoot: loadSources()
+  UserSourceRoot --> CompilerPipeline: List<SourceFile>
+
+  CompilerPipeline -> CompilerPipeline: parseFiles(sources)
+  CompilerPipeline -> CompilerPipeline: processCompilation(contexts, true)
+  CompilerPipeline -> ImportResolver: resolveImports(imports)
+  ImportResolver -> GlobalScope: resolve(fqcn)
+
+  CompilerPipeline -> ErrorReporter: hasErrors()
+  alt No errors
+    CompilerPipeline -> CompilerPipeline: JavaCodeGenerator.of(program)
+    CompilerPipeline --> BuildCommand: Generated Java code
+  else
+    CompilerPipeline --> BuildCommand: abort
+  end
+  deactivate CompilerPipeline
+end
+
+BuildCommand --> Developer: Done
+deactivate BuildCommand
+@enduml

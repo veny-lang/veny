@@ -1,0 +1,55 @@
+@startuml
+title Veny Compiler - Detailed Compilation Sequence
+
+actor Developer
+
+Developer -> BuildCommand: execute()
+BuildCommand -> StdlibLoader: new("veny", stdLibPath)
+BuildCommand -> UserSourceRoot: new(workingDir)
+BuildCommand -> CompilerContext: new([userCode, stdlib])
+BuildCommand -> CompilerPipeline: new(context)
+
+note over CompilerPipeline
+  AtomicBoolean ensures indexAllSources()
+  is called only once across compilations
+end note
+
+Developer -> CompilerPipeline: compile(stdlib, false)
+
+CompilerPipeline -> CompilerPipeline: ensureIndexed()
+CompilerPipeline -> CompilerPipeline: indexAllSources()
+loop for each SourceRoot
+    CompilerPipeline -> SourceRoot: loadSources()
+    SourceRoot --> CompilerPipeline: List<SourceFile>
+    loop for each SourceFile
+        CompilerPipeline -> CompilerPipeline: indexFile()
+        CompilerPipeline -> CompilerPipeline: parseAndCache()
+        CompilerPipeline -> RecursiveDescentParser: parse()
+        RecursiveDescentParser --> CompilerPipeline: VenyFile
+        CompilerPipeline -> GlobalScope: define(ClassSymbol/InterfaceSymbol)
+    end
+end
+
+CompilerPipeline -> CompilerPipeline: parseFiles()
+CompilerPipeline -> CompilerPipeline: processCompilation()
+CompilerPipeline -> ImportResolver: resolveImports(imports)
+ImportResolver -> GlobalScope: resolve(fqcn)
+GlobalScope --> ImportResolver: Symbol (or error)
+note right of CompilerPipeline
+  No code generation for stdlib
+end note
+
+Developer -> CompilerPipeline: compile(userCode, true)
+CompilerPipeline -> CompilerPipeline: ensureIndexed() (no-op)
+
+CompilerPipeline -> CompilerPipeline: parseFiles(user sources)
+CompilerPipeline -> CompilerPipeline: processCompilation()
+CompilerPipeline -> ImportResolver: resolveImports(imports)
+ImportResolver -> GlobalScope: resolve(fqcn)
+GlobalScope --> ImportResolver: Symbol
+
+CompilerPipeline -> JavaCodeGenerator: getCode(Program)
+JavaCodeGenerator --> CompilerPipeline: Java code
+CompilerPipeline -> Console: print Java code
+
+@enduml
