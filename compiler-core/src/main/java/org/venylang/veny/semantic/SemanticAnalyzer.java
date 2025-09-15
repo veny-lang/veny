@@ -25,6 +25,7 @@ import org.venylang.veny.semantic.types.BuiltinType;
 import org.venylang.veny.semantic.types.ClassType;
 import org.venylang.veny.semantic.types.InterfaceType;
 import org.venylang.veny.semantic.types.TypeResolver;
+import org.venylang.veny.util.ErrorReporter;
 import org.venylang.veny.util.Visibility;
 
 import java.util.*;
@@ -53,8 +54,11 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** The global (top-level) scope shared across all files. */
     private final GlobalScope globalScope;
 
-    public SemanticAnalyzer(GlobalScope globalScope) {
+    private final ErrorReporter errorReporter;
+
+    public SemanticAnalyzer(GlobalScope globalScope, ErrorReporter errorReporter) {
         this.globalScope = globalScope;
+        this.errorReporter = errorReporter;
         enterScope(globalScope);
     }
 

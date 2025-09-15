@@ -62,13 +62,14 @@ public class BuildCommand implements Runnable, CliCommand {
     @Override
     public void execute() {
         Path workingDir = Paths.get(sourceDir.getPath());
-        StdlibLoader loader = new StdlibLoader("veny", Optional.of(stdLibPath));
+
+        SourceRoot stdlibCode = new StdlibSourceRoot("veny", Optional.of(stdLibPath));
         SourceRoot userCode = new UserSourceRoot(workingDir);
-        CompilerContext compilerContext = new CompilerContext(List.of(userCode, loader));
+        CompilerContext compilerContext = new CompilerContext(List.of(userCode, stdlibCode));
         CompilerPipeline pipeline = new CompilerPipeline(compilerContext);
 
         // 1️⃣ Compile stdlib (from a known location)
-        pipeline.compile(loader, false);
+        pipeline.compile(stdlibCode, false);
 
         // 2️⃣ Compile user project
         if (userCode.isEmpty()) {

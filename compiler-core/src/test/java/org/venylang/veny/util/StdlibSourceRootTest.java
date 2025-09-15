@@ -28,7 +28,7 @@ import java.util.jar.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class StdlibLoaderTest {
+class StdlibSourceRootTest {
 
     @TempDir
     Path tempDir;
@@ -55,7 +55,7 @@ class StdlibLoaderTest {
         String content = "package veny.lang\nclass Test(){}\n";
         Files.write(file, content.getBytes(StandardCharsets.UTF_8));
 
-        StdlibLoader loader = new StdlibLoader("veny.lang", Optional.of(devBase));
+        StdlibSourceRoot loader = new StdlibSourceRoot("veny.lang", Optional.of(devBase));
         List<SourceFile> files = loader.load();
 
         assertEquals(1, files.size(), "Should load exactly one source file");
@@ -82,7 +82,7 @@ class StdlibLoaderTest {
         );
         Thread.currentThread().setContextClassLoader(ucl);
 
-        StdlibLoader loader = new StdlibLoader("veny.lang", Optional.empty());
+        StdlibSourceRoot loader = new StdlibSourceRoot("veny.lang", Optional.empty());
         List<SourceFile> files = loader.load();
 
         assertEquals(1, files.size());
@@ -118,7 +118,7 @@ class StdlibLoaderTest {
 
             Thread.currentThread().setContextClassLoader(ucl);
 
-            StdlibLoader loader = new StdlibLoader("veny.lang", Optional.empty());
+            StdlibSourceRoot loader = new StdlibSourceRoot("veny.lang", Optional.empty());
             List<SourceFile> files = loader.load();
 
             assertEquals(1, files.size());
@@ -142,7 +142,7 @@ class StdlibLoaderTest {
         );
         Thread.currentThread().setContextClassLoader(ucl);
 
-        StdlibLoader loader = new StdlibLoader("veny.lang", Optional.empty());
+        StdlibSourceRoot loader = new StdlibSourceRoot("veny.lang", Optional.empty());
         List<SourceFile> files = loader.load();
 
         assertEquals(1, files.size());
@@ -153,7 +153,7 @@ class StdlibLoaderTest {
 
     @Test
     void emptyClasspathAndNoDevPathReturnsEmptyList() {
-        StdlibLoader loader = new StdlibLoader("nonexistent.pkg", Optional.empty());
+        StdlibSourceRoot loader = new StdlibSourceRoot("nonexistent.pkg", Optional.empty());
         List<SourceFile> files = loader.load();
         assertTrue(files.isEmpty(), "Should return empty list when nothing is found");
     }

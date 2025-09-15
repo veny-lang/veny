@@ -35,7 +35,7 @@ import java.util.zip.ZipEntry;
  * </ul>
  * This allows seamless support for both development and deployment scenarios.
  */
-public class StdlibLoader implements SourceRoot {
+public class StdlibSourceRoot implements SourceRoot {
 
     private final String basePackage;
     private final Optional<Path> devOverridePath;
@@ -47,7 +47,7 @@ public class StdlibLoader implements SourceRoot {
      * @param basePackage     the base package name where stdlib source files are located (e.g., {@code veny.lang})
      * @param devOverridePath an optional path to use as a fallback in development mode
      */
-    public StdlibLoader(String basePackage, Optional<Path> devOverridePath) {
+    public StdlibSourceRoot(String basePackage, Optional<Path> devOverridePath) {
         this.basePackage = basePackage;
         this.devOverridePath = devOverridePath;
         this.resourcePath = basePackage.replace('.', '/');

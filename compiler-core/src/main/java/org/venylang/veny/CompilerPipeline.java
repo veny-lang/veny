@@ -33,6 +33,7 @@ import org.venylang.veny.parser.ast.ClassDecl;
 import org.venylang.veny.parser.ast.InterfaceDecl;
 import org.venylang.veny.parser.ast.Program;
 import org.venylang.veny.parser.ast.VenyFile;
+import org.venylang.veny.semantic.SemanticAnalyzer;
 import org.venylang.veny.semantic.SemanticException;
 import org.venylang.veny.semantic.Symbol;
 import org.venylang.veny.semantic.symbols.ClassSymbol;
@@ -189,6 +190,11 @@ public class CompilerPipeline {
         } catch (ImportResolutionException e) {
             throw new RuntimeException("Failed to resolve imports", e);
         }
+
+        // 2️⃣ Run semantic analysis
+        SemanticAnalyzer analyzer =
+                new SemanticAnalyzer(compilerContext.getGlobalScope(), compilerContext.errorReporter());
+        program.accept(analyzer);
 
         if (compilerContext.errorReporter().hasErrors()) {
             System.err.println("Compilation aborted due to errors.");
