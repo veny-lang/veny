@@ -72,7 +72,7 @@ public class VenyLexerTest {
         assertEquals("42", tokens.get(0).lexeme());
         //assertEquals(TokenType.INT_LITERAL, tokens.get(1).type());
         assertEquals("3.14", tokens.get(1).lexeme());
-        assertEquals(TokenType.TEST_LITERAL, tokens.get(2).type());
+        assertEquals(TokenType.TEXT_LITERAL, tokens.get(2).type());
         assertEquals("hello", tokens.get(2).lexeme());
     }
 
@@ -93,7 +93,7 @@ public class VenyLexerTest {
     }
 
     @Test
-    public void testUnterminatedStringError() {
+    public void testUnterminatedTextError() {
         String input = "\"hello";
         Lexer lexer = makeLexer(input);
         lexer.scanTokens();

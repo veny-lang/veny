@@ -110,10 +110,8 @@ public class Lexer {
             scanToken();
         }
 
-        // EOF token should have offset at the current position
         Offset eofOffset = new Offset(srcPosMap.base() + current);
-        tokens.add(new Token(TokenType.EOF, "", eofOffset));
-
+        tokens.add(new Token(TokenType.EOF, "", null, eofOffset));
         return tokens;
     }
 
@@ -134,52 +132,94 @@ public class Lexer {
     private void scanToken() {
         char c = advance();
         switch (c) {
-            case '(': addToken(TokenType.LPAREN); break;
-            case ')': addToken(TokenType.RPAREN); break;
-            case '{': addToken(TokenType.LBRACE); break;
-            case '}': addToken(TokenType.RBRACE); break;
-            case '[': addToken(TokenType.LBRACKET); break;
-            case ']': addToken(TokenType.RBRACKET); break;
-            case ',': addToken(TokenType.COMMA); break;
-            case '.': addToken(TokenType.DOT); break;
-            case ';': addToken(TokenType.SEMICOLON); break;
-            case ':': addToken(TokenType.COLON); break;
-            case '+': addToken(TokenType.PLUS); break;
-            case '-': addToken(TokenType.MINUS); break;
-            case '*': addToken(TokenType.STAR); break;
-
-            case '/':
+            case '(' -> addToken(TokenType.LPAREN);
+            case ')' -> addToken(TokenType.RPAREN);
+            case '{' -> addToken(TokenType.LBRACE);
+            case '}' -> addToken(TokenType.RBRACE);
+            case '[' -> addToken(TokenType.LBRACKET);
+            case ']' -> addToken(TokenType.RBRACKET);
+            case ',' -> addToken(TokenType.COMMA);
+            case '.' -> {
+                if (match('.')) addToken(TokenType.DOUBLE_DOT); else addToken(TokenType.DOT);
+            }
+            case ';' -> addToken(TokenType.SEMICOLON);
+            case ':' -> {
+                if (match(':')) addToken(TokenType.DOUBLE_COLON);
+                else if (match('=')) addToken(TokenType.COLON_EQ);
+                else addToken(TokenType.COLON);
+            }
+            case '+' -> {
+                if (match('+')) addToken(TokenType.INCREMENT);
+                else if (match('=')) addToken(TokenType.PLUS_EQ);
+                else addToken(TokenType.PLUS);
+            }
+            case '-' -> {
+                if (match('-')) addToken(TokenType.DECREMENT);
+                else if (match('>')) addToken(TokenType.ARROW);
+                else if (match('=')) addToken(TokenType.MINUS_EQ);
+                else addToken(TokenType.MINUS);
+            }
+            case '*' -> {
+                if (match('=')) addToken(TokenType.STAR_EQ);
+                else addToken(TokenType.STAR);
+            }
+            case '/' -> {
                 if (match('/')) {
-                    while (peek() != '\n' && !isAtEnd()) advance(); // skip comment
+                    // single-line comment: consume until newline or EOF
+                    while (peek() != '\n' && !isAtEnd()) advance();
+                } else if (match('=')) {
+                    addToken(TokenType.SLASH_EQ);
                 } else {
                     addToken(TokenType.SLASH);
                 }
-                break;
+            }
+            case '%' -> {
+                if (match('=')) addToken(TokenType.MOD_EQ); else addToken(TokenType.MOD);
+            }
 
-            case '=': addToken(match('=') ? TokenType.EQ : TokenType.ASSIGN); break;
-            case '!': addToken(match('=') ? TokenType.NEQ : null); break;
-            case '<': addToken(match('=') ? TokenType.LE : TokenType.LT); break;
-            case '>': addToken(match('=') ? TokenType.GE : TokenType.GT); break;
+            case '=' -> {
+                if (match('=')) addToken(TokenType.EQ);
+                else if (match('>')) addToken(TokenType.DOUBLE_ARROW);
+                else addToken(TokenType.ASSIGN);
+            }
 
-            case '"': string(); break;
+            case '!' -> addToken(match('=') ? TokenType.NEQ : TokenType.BANG);
 
-            case ' ':
-            case '\r':
-            case '\t':
-            case '\n':
-                // Whitespace: ignore (you no longer need to track line++)
-                break;
+            case '<' -> {
+                if (match('=')) addToken(TokenType.LE);
+                else if (match('<')) addToken(TokenType.LT_LT);
+                else addToken(TokenType.LT);
+            }
+            case '>' -> {
+                if (match('=')) addToken(TokenType.GE);
+                else if (match('>')) addToken(TokenType.GT_GT);
+                else addToken(TokenType.GT);
+            }
 
-            default:
+            case '&' -> addToken(match('&') ? TokenType.AND : TokenType.AMPERSAND);
+            case '|' -> addToken(match('|') ? TokenType.OR : TokenType.PIPE);
+            case '^' -> addToken(TokenType.CARET);
+            case '~' -> addToken(TokenType.TILDE);
+            case '?' -> addToken(TokenType.QUESTION);
+
+            case '"' -> text();
+
+            case ' ', '\r', '\t', '\n' -> {
+                // ignore whitespace
+            }
+
+            default -> {
                 if (isDigit(c)) {
                     number();
                 } else if (isAlpha(c)) {
                     identifier();
+                } else {
+                    // unknown / unsupported char -> emit ERROR token
+                    addToken(TokenType.ERROR, source.substring(start, current));
                 }
-                break;
+            }
         }
     }
-
 
     /**
      * Scans an identifier or keyword from the source.
@@ -191,8 +231,19 @@ public class Lexer {
     private void identifier() {
         while (isAlphaNumeric(peek())) advance();
         String text = source.substring(start, current);
-        TokenType type = keywords.getOrDefault(text, TokenType.IDENTIFIER);
-        addToken(type);
+        TokenType type = keywords.get(text);
+
+        if (type != null) {
+            // Handle true/false/null as literals
+            switch (type) {
+                case TRUE -> addToken(TokenType.TRUE, text, Boolean.TRUE);
+                case FALSE -> addToken(TokenType.FALSE, text, Boolean.FALSE);
+                case NULL -> addToken(TokenType.NULL, text, null);
+                default -> addToken(type, text); // keywords other than literals
+            }
+        } else {
+            addToken(TokenType.IDENTIFIER, text, text);
+        }
     }
 
     /**
@@ -205,36 +256,34 @@ public class Lexer {
         if (peek() == '.' && isDigit(peekNext())) {
             advance(); // consume dot
             while (isDigit(peek())) advance();
-            addToken(TokenType.FLOAT_LITERAL);
+            String lexeme = source.substring(start, current);
+            addToken(TokenType.FLOAT_LITERAL, lexeme, Double.parseDouble(lexeme));
         } else {
-            addToken(TokenType.INT_LITERAL);
+            String lexeme = source.substring(start, current);
+            addToken(TokenType.INT_LITERAL, lexeme, Integer.parseInt(lexeme));
         }
     }
 
     /**
-     * Scans a string literal from the source.
-     * Supports multi-character string values enclosed in double quotes.
-     * If the string is unterminated, prints an error with the correct offset.
+     * Scans a text literal from the source.
+     * Supports multi-character text values enclosed in double quotes.
+     * If the text is unterminated, prints an error with the correct offset.
      * <p>
      * The resulting token does not include the surrounding quotes.
      */
-    private void string() {
+    private void text() {
         while (peek() != '"' && !isAtEnd()) {
-            advance(); // No need to count lines anymore
+            advance();
         }
 
         if (isAtEnd()) {
-            //Offset errorOffset = new Offset(srcPosMap.base() + start);
-            //System.err.println("Unterminated string at position " + errorOffset.offset());
-            addToken(TokenType.ERROR, "Unterminated string at position ");
+            addToken(TokenType.ERROR, "Unterminated string");
             return;
         }
 
-        advance(); // closing "
-        String value = source.substring(start + 1, current - 1); // Exclude quotes
-
-        Offset tokenOffset = new Offset(srcPosMap.base() + start);
-        tokens.add(new Token(TokenType.TEST_LITERAL, value, tokenOffset));
+        advance(); // closing quote
+        String value = source.substring(start + 1, current - 1); // inner contents
+        addToken(TokenType.TEXT_LITERAL, source.substring(start, current), value);
     }
 
     /**
@@ -317,29 +366,59 @@ public class Lexer {
 
     /**
      * Adds a token of the given type using the current lexeme range.
+     * <p>
+     * The lexeme is taken directly from the source substring spanning
+     * the current token, and the literal value is {@code null}.
      *
-     * @param type the type of token to add
+     * @param type the type of token to add (must not be {@code null})
      */
     private void addToken(TokenType type) {
-        addToken(type, source.substring(start, current));
+        addToken(type, source.substring(start, current), null);
     }
 
     /**
-     * Adds a token of the specified type and lexeme at the current source position.
+     * Adds a token of the given type with an associated literal value.
      * <p>
-     * Computes the {@link Offset} of the token based on the start index and the
-     * associated {@link SrcFilePosMap}. If the token type is {@code null}, the token
-     * is ignored (e.g., for invalid characters like a lone '!').
+     * The lexeme is taken from the current source substring. The literal
+     * is a parsed or computed value (e.g., {@code Integer}, {@code Double},
+     * {@code String}), or {@code null} if not applicable.
      *
-     * @param type   the type of the token (may be {@code null} to indicate an invalid or ignored token)
-     * @param lexeme the exact string of characters that make up the token
+     * @param type    the type of token to add (must not be {@code null})
+     * @param literal the parsed literal value associated with the token
+     */
+    private void addToken(TokenType type, Object literal) {
+        addToken(type, source.substring(start, current), literal);
+    }
+
+    /**
+     * Adds a token of the given type with an explicit lexeme string.
+     * <p>
+     * The literal value is set to {@code null}.
+     *
+     * @param type   the type of token to add (must not be {@code null})
+     * @param lexeme the exact text matched for this token
      */
     private void addToken(TokenType type, String lexeme) {
-        if (type == null) {
-            return; // for things like `!` which are invalid alone
-        }
+        addToken(type, lexeme, null);
+    }
+
+    /**
+     * Adds a token of the specified type, lexeme, and literal at the current source position.
+     * <p>
+     * The token’s {@link Offset} is computed based on the starting index
+     * relative to the {@link SrcFilePosMap}.
+     * <p>
+     * If the token type is {@code null}, the method does nothing.
+     *
+     * @param type    the type of the token (may be {@code null} to ignore invalid tokens)
+     * @param lexeme  the exact text of the token as it appears in the source
+     * @param literal the parsed literal value (e.g., numeric value, string contents),
+     *                or {@code null} if not applicable
+     */
+    private void addToken(TokenType type, String lexeme, Object literal) {
+        if (type == null) return;
         Offset offset = new Offset(srcPosMap.base() + start);
-        tokens.add(new Token(type, lexeme, offset));
+        tokens.add(new Token(type, lexeme, literal, offset));
     }
 
 }

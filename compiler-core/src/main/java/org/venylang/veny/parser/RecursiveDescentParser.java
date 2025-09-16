@@ -709,7 +709,7 @@ public class RecursiveDescentParser implements Parser {
         }
 
         Token token = expectAny(TokenType.IDENTIFIER, TokenType.INT_LITERAL,
-                TokenType.TEST_LITERAL, TokenType.FLOAT_LITERAL, TokenType.TRUE, TokenType.FALSE);
+                TokenType.TEXT_LITERAL, TokenType.FLOAT_LITERAL, TokenType.TRUE, TokenType.FALSE);
 
         Expression expr;
 
@@ -736,7 +736,7 @@ public class RecursiveDescentParser implements Parser {
             case FLOAT_LITERAL:
                 expr = new LiteralExpr(Float.parseFloat(token.lexeme()));
                 break;
-            case TEST_LITERAL:
+            case TEXT_LITERAL:
                 expr = new LiteralExpr(token.lexeme());
                 break;
             case TRUE:
@@ -821,7 +821,7 @@ public class RecursiveDescentParser implements Parser {
         Token literal = consume();
         if (literal.type() == TokenType.INT_LITERAL) {
             return new LiteralExpr(Integer.parseInt(literal.lexeme()));
-        } else if (literal.type() == TokenType.TEST_LITERAL) {
+        } else if (literal.type() == TokenType.TEXT_LITERAL) {
             return new LiteralExpr(literal.lexeme());
         }
         throw new ParseException("Invalid literal: " + literal);

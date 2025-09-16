@@ -24,38 +24,39 @@ public enum TokenType {
     PUB, PRI, IN,
 
     // Identifiers and literals
-    IDENTIFIER, INT_LITERAL, FLOAT_LITERAL, TEST_LITERAL,
+    IDENTIFIER, INT_LITERAL, FLOAT_LITERAL, TEXT_LITERAL,
 
-    // Symbols
-    PLUS, // +
-    MINUS, // -
-    STAR, // *
-    SLASH, // /
-    MOD, // %
-    BANG, // !
-    AMPERSAND, // &
-    PIPE, // |
-    CARET, // ^
-    TILDE, // ~
-    QUESTION, // ?
-    ASSIGN, EQ, NEQ, // =, ==, !=
-    AND, OR, // &&, ||
-    INCREMENT, DECREMENT, // ++, --
-    BANG_EQ, // !=
+    // Operators and punctuation
+    PLUS, MINUS, STAR, SLASH, MOD,
+    BANG,           // !
+    ASSIGN,         // =
+    EQ,             // ==
+    NEQ,            // !=
+
+    AND,            // &&
+    OR,             // ||
+
+    INCREMENT,      // ++
+    DECREMENT,      // --
+
     LT, GT, LE, GE, // <, >, <=, >=
-    LT_LT, GT_GT, // <<, >>
-    PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, MOD_EQ,
-    ARROW, // ->
-    DOUBLE_ARROW, // =>
-    COLON_EQ, // :=
-    DOUBLE_COLON, // ::
-    DOUBLE_DOT, // ..
-    DOUBLE_PIPE, // ||
-    DOUBLE_AMPERSAND, // &&
+    LT_LT, GT_GT,   // <<, >>
+
+    PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, MOD_EQ, // optional compound assigns
+    ARROW,          // ->
+    DOUBLE_ARROW,   // =>
+
+    COLON_EQ,       // :=
+    DOUBLE_COLON,   // ::
+    DOUBLE_DOT,     // ..
+
+    AMPERSAND, PIPE, CARET, TILDE, QUESTION, // single-char variants if needed
+
+    // parentheses / braces / brackets / separators
     LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,
     SEMICOLON, COLON, COMMA, DOT,
 
-    // Special tokens
-    ERROR, // Error
-    EOF    // End of a file
+    // Special
+    ERROR,
+    EOF
 }

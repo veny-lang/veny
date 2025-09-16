@@ -50,7 +50,7 @@ add(x: Int, y: Int): Int {
 
 ```veny
 class App {
-    entry(args: [String]): void {
+    entry(args: [Text]): void {
         System.print("Welcome to Veny")
     }
 }
@@ -124,7 +124,7 @@ val names = ["Alice", "Bob"]  // Inferred as [String]
 Initial functions include:
 
 ```veny
-System.print(message: String): void
+Console.print(message: String): void
 ```
 
 Future expansions will include `String`, `Math`, and `Array` utilities.

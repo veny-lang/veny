@@ -24,19 +24,24 @@ import org.venylang.veny.util.source.SrcFileSet;
  * Represents a lexical token produced by the lexer.
  * <p>
  * A token consists of a type (e.g., identifier, keyword, literal), the matched lexeme
- * (i.e., the exact substring from the source), and an {@link Offset} indicating its position
- * within the source file.
+ * (i.e., the exact substring from the source), an optional parsed literal value,
+ * and an {@link Offset} indicating its position within the source file.
  * <p>
  * Line and column information can be retrieved from the {@link SrcFileSet} using the offset.
  *
- * @param type   the type of the token (e.g., IDENTIFIER, NUMBER, STRING)
- * @param lexeme the exact text matched for this token
- * @param offset the file-relative offset of the token’s starting character
+ * @param type    the type of the token (e.g., IDENTIFIER, NUMBER, TEXT_LITERAL)
+ * @param lexeme  the exact text matched for this token
+ * @param literal the parsed literal value (e.g., Integer, Double, String, Boolean, null),
+ *                or {@code null} if not applicable
+ * @param offset  the file-relative offset of the token’s starting character
  */
-public record Token(TokenType type, String lexeme, Offset offset) {
+public record Token(TokenType type, String lexeme, Object literal, Offset offset) {
 
     @Override
     public String toString() {
-        return type + " '" + lexeme + "' (offset " + offset + ")";
+        return type + " '" + lexeme + "'" +
+                (literal != null ? " (literal=" + literal + ")" : "") +
+                " (offset " + offset + ")";
     }
 }
+

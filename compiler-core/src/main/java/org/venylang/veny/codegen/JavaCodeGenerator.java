@@ -22,7 +22,6 @@ import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
 /**
  * A visitor implementation that generates Java source code from a Veny AST.
