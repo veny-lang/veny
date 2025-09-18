@@ -19,13 +19,15 @@ package org.venylang.veny.parser.ast.expression;
 
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
+import org.venylang.veny.semantic.Type;
+import org.venylang.veny.semantic.types.BuiltinType;
 
 import java.util.Objects;
 
 /**
  * Represents a literal value in the AST, such as a number, string, or boolean.
  */
-public record LiteralExpr(Object value) implements Expression {
+public record LiteralExpr(Object value, Type type) implements Expression {
 
   /**
    * Creates a new literal expression with the given value.
@@ -35,7 +37,19 @@ public record LiteralExpr(Object value) implements Expression {
    */
   public static LiteralExpr of(Object value) {
     Objects.requireNonNull(value, "value must not be null");
-    return new LiteralExpr(value);
+    if (value instanceof Integer) {
+        return new LiteralExpr(value, BuiltinType.INT);
+    }
+    if (value instanceof Boolean) {
+        return new LiteralExpr(value, BuiltinType.BOOL);
+    }
+    if (value instanceof String) {
+        return new LiteralExpr(value, BuiltinType.TEXT);
+    }
+    if (value == null) {
+        return new LiteralExpr(null, BuiltinType.NULL);
+    }
+    throw new IllegalArgumentException("Unsupported literal type: " + value);
   }
 
   /**
@@ -57,6 +71,6 @@ public record LiteralExpr(Object value) implements Expression {
    */
   @Override
   public String toString() {
-    return "LiteralExpr(" + value + ")";
+    return "LiteralExpr(" + value + " : " + type + ")";
   }
 }

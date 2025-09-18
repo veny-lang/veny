@@ -35,6 +35,7 @@ public class MethodSymbol extends Symbol implements Scope {
     private final Scope enclosingScope;
     private final Map<String, Symbol> parameters = new LinkedHashMap<>();
     private final Map<String, Symbol> locals = new LinkedHashMap<>();
+    private final Type returnType;
 
     /**
      * Constructs a new MethodSymbol.
@@ -45,8 +46,13 @@ public class MethodSymbol extends Symbol implements Scope {
      * @param enclosingScope The class or outer scope containing this method.
      */
     public MethodSymbol(String name, Type returnType, Visibility visibility, Scope enclosingScope) {
-        super(name, returnType, visibility);
+        super(name, visibility);
+        this.returnType = returnType;
         this.enclosingScope = enclosingScope;
+    }
+
+    public Type returnType() {
+        return returnType;
     }
 
     @Override
@@ -61,9 +67,13 @@ public class MethodSymbol extends Symbol implements Scope {
     @Override
     public Symbol resolve(String name) {
         Symbol symbol = locals.get(name);
-        if (symbol != null) return symbol;
+        if (symbol != null) {
+            return symbol;
+        }
         symbol = parameters.get(name);
-        if (symbol != null) return symbol;
+        if (symbol != null) {
+            return symbol;
+        }
         return enclosingScope != null ? enclosingScope.resolve(name) : null;
     }
 
@@ -98,6 +108,6 @@ public class MethodSymbol extends Symbol implements Scope {
 
     @Override
     public String toString() {
-        return "MethodSymbol(" + name + ")";
+        return "MethodSymbol(" + name + " : " + returnType + ")";
     }
 }

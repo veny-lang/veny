@@ -20,8 +20,10 @@ package org.venylang.veny.codegen;
 import org.venylang.veny.parser.ast.*;
 import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
+import org.venylang.veny.util.Visibility;
 
 import java.time.LocalDate;
+import java.util.stream.Collectors;
 
 /**
  * A visitor implementation that generates Java source code from a Veny AST.
@@ -50,6 +52,8 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     private String entryClassName = null;
     private String entryPackageName = null;
     private String currentPackageName = null; // tracks package during file traversal
+    private boolean insideEntryMethod = false; // tracks if inside entry() method
+    private String currentClassName = null;
 
     private JavaCodeGenerator() {}
 
@@ -100,7 +104,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
                     ? entryPackageName + "." + entryClassName
                     : entryClassName;
 
-            builder.appendLine(fullEntryClass + ".entry(venyArgs);")
+            builder.appendLine("new " + fullEntryClass + "().entry(venyArgs);")
                     .unindent()
                     .appendLine("}")
                     .unindent()
@@ -137,6 +141,9 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(ClassDecl node) {
+        String prevClass = currentClassName;
+        currentClassName = node.name(); // track current class
+
         StringBuilder classSignature = new StringBuilder("public class ").append(node.name());
 
         // Handle optional superclass (ext)
@@ -172,6 +179,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
         setEntryClassName(node);
 
+        currentClassName = prevClass; // restore when leaving the class
         return null;
     }
 
@@ -182,31 +190,58 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(VarDecl node) {
-        String visibility = node.visibility().toString().toLowerCase();
-        String line = visibility + " " + node.typeName() + " " + node.name() + ";";
-        builder.appendLine(line);
+        String visibility = mapVisibility(node.visibility());
+        if (visibility.isEmpty()) visibility = "private";
+
+        String type = mapType(node.typeName());
+
+        StringBuilder line = new StringBuilder();
+        line.append(visibility).append(" ");
+        if (!node.isMutable()) line.append("final ");
+
+        line.append(type).append(" ").append(node.name());
+
+        if (node.initializer() != null) {
+            line.append(" = ").append(exprToJava(node.initializer()));
+        }
+
+        line.append(";");
+        builder.appendLine(line.toString());
         return null;
     }
 
     @Override
     public Void visit(MethodDecl node) {
         String visibility = node.visibility().toString().toLowerCase();
-        StringBuilder params = new StringBuilder();
+        String prefix = visibility.equals("default") ? "" : visibility + " ";
 
+        StringBuilder params = new StringBuilder();
         for (int i = 0; i < node.parameters().size(); i++) {
             var param = node.parameters().get(i);
-            params.append(param.type()).append(" ").append(param.name());
+            params.append(mapType(param.type()))
+                    .append(" ")
+                    .append(param.name());
             if (i < node.parameters().size() - 1) {
                 params.append(", ");
             }
         }
 
-        builder.appendLine(visibility + " " + node.returnType() + " " + node.name() + "(" + params + ") {")
+        builder.appendLine(prefix + mapType(node.returnType()) + " " + node.name() + "(" + params + ") {")
                 .indent();
+        /*builder.appendLine(visibility + " " + mapType(node.returnType()) + " " + node.name() + "(" + params + ") {")
+                .indent();*/
+
+        // mark if we're in entry()
+        boolean prevInside = insideEntryMethod;
+        if (node.name().equals("entry")) {
+            insideEntryMethod = true;
+        }
 
         for (Statement stmt : node.body()) {
             stmt.accept(this);
         }
+
+        insideEntryMethod = prevInside; // restore previous state
 
         builder.unindent().appendLine("}");
         return null;
@@ -239,6 +274,10 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(ExprStmt node) {
+        String exprCode = exprToJava(node.expression());
+        if (!exprCode.isEmpty()) {
+            builder.appendLine(exprCode + ";");
+        }
         return null;
     }
 
@@ -323,6 +362,133 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             }
         }
         return null;
+    }
+
+    private String mapVisibility(Visibility v) {
+        return switch (v) {
+            case PUBLIC -> "public";
+            case PRIVATE -> "private";
+            default -> ""; // package-private (no keyword in Java)
+        };
+    }
+
+    private String mapType(String venyType) {
+        if (venyType == null) return "void";
+
+        // Handle array types like [Text]
+        if (venyType.startsWith("[") && venyType.endsWith("]")) {
+            String elem = venyType.substring(1, venyType.length() - 1);
+            return mapType(elem) + "[]";
+        }
+
+        return switch (venyType) {
+            case "Text" -> "veny.lang.Text";
+            case "Int" -> "int";
+            case "Bool" -> "boolean";
+            case "Void", "void" -> "void";
+            default -> venyType; // assume it's a class/interface name
+        };
+    }
+
+    private String exprToJava(Expression expr) {
+        if (expr == null) return "null";
+
+        if (expr instanceof LiteralExpr lit) {
+            if (lit.value() instanceof String s) {
+                return "veny.lang.Text.of(\"" + s.replace("\"", "\\\"") + "\")";
+            } else if (lit.value() instanceof Integer || lit.value() instanceof Boolean) {
+                return lit.value().toString();
+            }
+        }
+
+        if (expr instanceof VariableExpr var) {
+            return var.name();
+        }
+
+        if (expr instanceof BinaryExpr bin) {
+            return exprToJava(bin.left()) + " " + bin.operator() + " " + exprToJava(bin.right());
+        }
+
+        if (expr instanceof UnaryExpr un) {
+            return un.operator() + exprToJava(un.operand());
+        }
+
+        if (expr instanceof CallExpr call) {
+            String args = call.arguments().stream()
+                    .map(this::exprToJava)
+                    .collect(Collectors.joining(", "));
+
+            Expression calleeExpr = call.callee();
+
+            System.out.println("CallExpr debug: calleeExpr class = " + calleeExpr.getClass().getSimpleName());
+
+            if (calleeExpr instanceof VariableExpr var) {
+                if (var.name().equals(currentClassName)) {
+                    // calling constructor of same class → skip
+                    return "";
+                }
+                return var.name() + "(" + args + ")";
+            }
+
+            if (calleeExpr instanceof GetExpr get) {
+                String target = exprToJava(get.target());
+                // skip if target eventually evaluates to currentClassName
+                if (get.target() instanceof VariableExpr v && v.name().equals(currentClassName)) {
+                    return get.field() + "(" + args + ")";
+                }
+                return (target.isEmpty() ? "" : target + ".") + get.field() + "(" + args + ")";
+            }
+
+            if (calleeExpr instanceof CallExpr nestedCall) {
+                // recursively check nested calls
+                String nested = exprToJava(nestedCall);
+                if (nested.equals(currentClassName)) {
+                    return ""; // skip self-constructor
+                }
+                return nested + "(" + args + ")";
+            }
+
+            String callee = exprToJava(calleeExpr);
+            return callee + "(" + args + ")";        }
+
+        if (expr instanceof NewExpr ne) {
+            if (insideEntryMethod && ne.className().equals(currentClassName)) {
+                // Inside entry, calling the same class → just "this"
+                return "";
+            }
+            return "new " + ne.className() + "()";
+        }
+
+        if (expr instanceof GetExpr get) {
+            // If the target is a NewExpr of the current class, treat as `this` (i.e., omit prefix)
+            if (get.target() instanceof NewExpr ne && ne.className().equals(currentClassName)) {
+                return get.field(); // just the method or field name
+            }
+
+            // Otherwise, recursively generate the target
+            String target = exprToJava(get.target());
+            return target + "." + get.field();
+        }
+
+        if (expr instanceof SetExpr set) {
+            // object.field = value
+            return exprToJava(set.target()) + "." + set.field() + " = " + exprToJava(set.value());
+        }
+
+        if (expr instanceof ArrayLiteralExpr arr) {
+            String elems = arr.elements().stream()
+                    .map(this::exprToJava)
+                    .collect(Collectors.joining(", "));
+            // In Java, must know the type. Assume semantic analysis gives elemTypeName.
+            String type = mapType(arr.elementType().getName());
+            return "new " + type + "[] { " + elems + " }";
+        }
+
+        if (expr instanceof AssignExpr assign) {
+            return exprToJava(assign.value()) + " = " + exprToJava(assign.value());
+        }
+
+        return "/* unsupported expr */";
     }
 
     /**

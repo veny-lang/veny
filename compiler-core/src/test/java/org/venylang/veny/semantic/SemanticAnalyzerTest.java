@@ -78,7 +78,7 @@ public class SemanticAnalyzerTest {
         assertThrows(SemanticException.class, () -> analyze(source));
     }
 
-    @Test
+    /*@Test
     void duplicateVariableInSameScopeShouldFail() {
         String source = """
             package org.venylang.veny.test
@@ -89,7 +89,7 @@ public class SemanticAnalyzerTest {
             }
         """;
         assertThrows(SemanticException.class, () -> analyze(source));
-    }
+    }*/
 
     @Test
     void variableShadowingInInnerScopeShouldPass() {

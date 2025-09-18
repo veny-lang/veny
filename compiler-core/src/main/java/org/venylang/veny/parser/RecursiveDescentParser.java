@@ -803,7 +803,7 @@ public class RecursiveDescentParser implements Parser {
                 } while (match(TokenType.COMMA));
             }
             expect(TokenType.RBRACKET);
-            return new ArrayLiteralExpr(elements);
+            return new ArrayLiteralExpr(elements, null); // element type is not known yet. Will be added in semantic analysis
         }
 
         Token token = expectAny(TokenType.IDENTIFIER, TokenType.INT_LITERAL,
@@ -826,7 +826,7 @@ public class RecursiveDescentParser implements Parser {
                 }
                 break;
             case INT_LITERAL, FLOAT_LITERAL, TEXT_LITERAL, TRUE, FALSE, NULL:
-                expr = new LiteralExpr(token.literal());
+                expr = LiteralExpr.of(token.literal());
                 break;
             default:
                 throw new ParseException("Unexpected token in expression: " + token);
@@ -900,7 +900,7 @@ public class RecursiveDescentParser implements Parser {
      */
     private Expression parseLiteralExpr() {
         Token literal = consume();
-        return new LiteralExpr(literal.literal());
+        return LiteralExpr.of(literal.literal());
     }
 
     // Parse binary expressions (for the future, can be expanded)

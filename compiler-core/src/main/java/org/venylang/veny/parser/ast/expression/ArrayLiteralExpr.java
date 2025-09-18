@@ -18,9 +18,11 @@
 package org.venylang.veny.parser.ast.expression;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
+import org.venylang.veny.semantic.Type;
 
 /**
  * Represents an array literal expression in the abstract syntax tree (AST).
@@ -31,18 +33,37 @@ import org.venylang.veny.parser.ast.Expression;
  *
  * @param elements The list of expressions representing the elements of the array.
  */
-public record ArrayLiteralExpr(List<Expression> elements) implements Expression {
+public class ArrayLiteralExpr implements Expression {
+    private final List<Expression> elements;
+    private Type elementType; // mutable so semantic analyzer can fill it in
 
     /**
      * Creates a new {@code ArrayLiteralExpr} with the given elements.
      *
      * @param elements A list of expressions representing the elements of the array.
+     * @param elementType The type of the array element
      * @return A new {@code ArrayLiteralExpr} instance.
      */
-    public static ArrayLiteralExpr of(List<Expression> elements) {
-        return new ArrayLiteralExpr(elements);
+    public static ArrayLiteralExpr of(List<Expression> elements, Type elementType) {
+        return new ArrayLiteralExpr(elements, elementType);
     }
 
+    public ArrayLiteralExpr(List<Expression> elements, Type elementType) {
+        this.elements = Objects.requireNonNull(elements, "elements must not be null");
+        this.elementType = elementType; // may be null initially, filled later
+    }
+
+    public List<Expression> elements() {
+        return elements;
+    }
+
+    public Type elementType() {
+        return elementType;
+    }
+
+    public void elementType(Type elementType) {
+        this.elementType = elementType;
+    }
     /**
      * Accepts a visitor that performs an operation on this array literal expression.
      *

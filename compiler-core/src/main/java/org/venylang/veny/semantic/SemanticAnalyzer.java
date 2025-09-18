@@ -330,8 +330,14 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(ReturnStmt node) {
+        MethodSymbol method = (MethodSymbol) currentScope();
+        Type expected = method.returnType();
+
         if (node.value() != null) {
-            node.value().accept(this);
+            Type actual = getExprType(node.value());
+            if (!expected.isAssignableFrom(actual)) {
+                error("Return type mismatch: expected " + expected + " but got " + actual);
+            }
         }
         return null;
     }
@@ -376,9 +382,17 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(ArrayLiteralExpr node) {
+        Type elemType = null;
         for (Expression elem : node.elements()) {
             elem.accept(this);
+            Type t = getExprType(elem);
+            if (elemType == null) {
+                elemType = t;
+            } else if (!elemType.isAssignableFrom(t)) {
+                error("Array elements must have the same type");
+            }
         }
+        node.elementType(elemType);
         return null;
     }
 
@@ -503,4 +517,68 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         error("Unknown type: " + typeName);
         return null;
     }
+
+    private Type getExprType(Expression expr) {
+        if (expr instanceof LiteralExpr lit) {
+            return lit.type(); // assuming LiteralExpr stores its type (e.g. Int, Text, Bool)
+        }
+
+        if (expr instanceof VariableExpr var) {
+            Symbol sym = currentScope().resolve(var.name());
+            if (sym instanceof VariableSymbol v) {
+                return v.getType();
+            }
+            error("Unknown variable: " + var.name());
+            return null;
+        }
+
+        if (expr instanceof BinaryExpr bin) {
+            Type left = getExprType(bin.left());
+            Type right = getExprType(bin.right());
+            // Example rule: both sides must match
+            if (left != null && !left.equals(right)) {
+                error("Type mismatch in binary expression: " + left + " vs " + right);
+            }
+            return left; // return common type
+        }
+
+        if (expr instanceof CallExpr call) {
+            // Assume callee resolves to a method symbol
+            if (call.callee() instanceof VariableExpr fnVar) {
+                Symbol sym = currentScope().resolve(fnVar.name());
+                if (sym instanceof MethodSymbol m) {
+                    return m.returnType();
+                }
+            }
+            error("Unable to resolve call expression");
+            return null;
+        }
+
+        if (expr instanceof NewExpr n) {
+            // new ClassName() → resolve ClassSymbol
+            Type t = resolveType(n.className());
+            return t;
+        }
+
+        if (expr instanceof ArrayLiteralExpr arr) {
+            if (!arr.elements().isEmpty()) {
+                Type firstElemType = getExprType(arr.elements().get(0));
+                for (Expression e : arr.elements()) {
+                    Type t = getExprType(e);
+                    if (t != null && !t.equals(firstElemType)) {
+                        error("Inconsistent element types in array literal: expected " + firstElemType + " but found " + t);
+                    }
+                }
+                arr.elementType(firstElemType);
+                return new ArrayType(firstElemType);
+            }
+            error("Cannot infer type for empty array literal");
+            return null;
+        }
+
+        // Fallback
+        error("Type inference not implemented for: " + expr.getClass().getSimpleName());
+        return null;
+    }
+
 }
