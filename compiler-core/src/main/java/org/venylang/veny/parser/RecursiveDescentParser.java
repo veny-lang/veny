@@ -26,10 +26,7 @@ import org.venylang.veny.parser.ast.statement.*;
 import org.venylang.veny.util.Visibility;
 import org.venylang.veny.util.source.Position;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * A recursive descent parser for the Veny language.
@@ -39,6 +36,7 @@ public class RecursiveDescentParser implements Parser {
     private final List<Token> tokens;
     private final ParseContext parseContext;
     private int current = 0;
+    private final Deque<ScopeKind> scopeStack = new ArrayDeque<>();
 
     /**
      * Constructs a new parser with the provided list of tokens.
@@ -115,37 +113,50 @@ public class RecursiveDescentParser implements Parser {
      * @throws ParseException if a syntax error is encountered
      */
     public VenyFile parse() {
-        // 🔒 Require `package` declaration
-        if (!match(TokenType.PACKAGE)) {
-            Token token = peek();
-            Position pos = parseContext.srcFilePosMap().positionFor(token.offset(), true);
-            throw new ParseException("Error at " + pos + ": Expected `package` declaration at the top of the file.");
-        }
-        String packageName = parseQualifiedName();
-
-        // 🟡 Optional: Parse `import` declarations
-        List<String> imports = new ArrayList<>();
-        while (match(TokenType.IMPORT)) {
-            String importName = parseQualifiedName();
-            imports.add(importName);
-        }
-
-        // 🧱 Parse class and interface declarations
-        List<ClassDecl> classes = new ArrayList<>();
-        List<InterfaceDecl> interfaces = new ArrayList<>();
-
-        while (peek() != null && peek().type() != TokenType.EOF) {
-            TokenType type = peek().type();
-            if (type == TokenType.CLASS) {
-                classes.add(parseClassDecl());
-            } else if (type == TokenType.INTERFACE) {
-                interfaces.add(parseInterfaceDecl());
-            } else {
-                throw new ParseException("Unexpected top-level declaration: " + peek().lexeme());
+        scopeStack.push(ScopeKind.GLOBAL);
+        try {
+            // 🔒 Require `package` declaration
+            if (!match(TokenType.PACKAGE)) {
+                Token token = peek();
+                Position pos = parseContext.srcFilePosMap().positionFor(token.offset(), true);
+                throw new ParseException("Error at " + pos + ": Expected `package` declaration at the top of the file.");
             }
-        }
+            String packageName = parseQualifiedName();
 
-        return new VenyFile(packageName, imports, classes, interfaces);
+            // 🟡 Optional: Parse `import` declarations
+            List<String> imports = new ArrayList<>();
+            while (match(TokenType.IMPORT)) {
+                String importName = parseQualifiedName();
+                imports.add(importName);
+            }
+
+            // 🧱 Parse class and interface declarations
+            List<ClassDecl> classes = new ArrayList<>();
+            List<InterfaceDecl> interfaces = new ArrayList<>();
+
+            while (peek() != null && peek().type() != TokenType.EOF) {
+                TokenType type = peek().type();
+                if (type == TokenType.CLASS) {
+                    classes.add(parseClassDecl());
+                } else if (type == TokenType.INTERFACE) {
+                    interfaces.add(parseInterfaceDecl());
+                } else {
+                    throw new ParseException("Unexpected top-level declaration: " + peek().lexeme());
+                }
+            }
+
+            return new VenyFile(packageName, imports, classes, interfaces);
+        } finally {
+            scopeStack.pop();
+        }
+    }
+
+    private ScopeKind currentScope() {
+        return scopeStack.peek();
+    }
+
+    private boolean inMethodScope() {
+        return currentScope() == ScopeKind.METHOD || currentScope() == ScopeKind.BLOCK;
     }
 
     /**
@@ -173,50 +184,55 @@ public class RecursiveDescentParser implements Parser {
      * @throws ParseException if class declaration syntax is invalid
      */
     private ClassDecl parseClassDecl() {
-        expect(TokenType.CLASS);
-        String className = expect(TokenType.IDENTIFIER).lexeme();
+        scopeStack.push(ScopeKind.CLASS);
+        try {
+            expect(TokenType.CLASS);
+            String className = expect(TokenType.IDENTIFIER).lexeme();
 
-        // Handle optional 'ext' parent class
-        String parent = null;
-        if (match(TokenType.EXT)) {
-            parent = expect(TokenType.IDENTIFIER).lexeme();
-        }
-
-        // Handle optional 'impl' interfaces
-        List<String> interfaces = new ArrayList<>();
-        if (match(TokenType.IMPL)) {
-            interfaces.add(expect(TokenType.IDENTIFIER).lexeme());
-            while (match(TokenType.COMMA)) {
-                interfaces.add(expect(TokenType.IDENTIFIER).lexeme());
-            }
-        }
-
-        expect(TokenType.LBRACE);
-
-        List<VarDecl> fields = new ArrayList<>();
-        List<MethodDecl> methods = new ArrayList<>();
-
-        while (peek() != null && peek().type() != TokenType.RBRACE) {
-            Visibility visibility = Visibility.DEFAULT;
-
-            if (match(TokenType.PUB)) {
-                visibility = Visibility.PUBLIC;
-            } else if (match(TokenType.PRI)) {
-                visibility = Visibility.PRIVATE;
+            // Handle optional 'ext' parent class
+            String parent = null;
+            if (match(TokenType.EXT)) {
+                parent = parseQualifiedName();
             }
 
-            Token next = peek();
-            if (next.type() == TokenType.VAR || next.type() == TokenType.VAL) {
-                fields.add(parseVarDecl(visibility));
-            } else if (next.type() == TokenType.IDENTIFIER && lookAhead(1).type() == TokenType.LPAREN) {
-                methods.add(parseMethodDecl(visibility));
-            } else {
-                throw new ParseException("Unexpected token in class body: " + next);
+            // Handle optional 'impl' interfaces
+            List<String> interfaces = new ArrayList<>();
+            if (match(TokenType.IMPL)) {
+                interfaces.add(parseQualifiedName());
+                while (match(TokenType.COMMA)) {
+                    interfaces.add(parseQualifiedName());
+                }
             }
-        }
 
-        expect(TokenType.RBRACE);
-        return new ClassDecl(className, parent, interfaces, fields, methods);
+            expect(TokenType.LBRACE);
+
+            List<VarDecl> fields = new ArrayList<>();
+            List<MethodDecl> methods = new ArrayList<>();
+
+            while (peek() != null && peek().type() != TokenType.RBRACE) {
+                Visibility visibility = Visibility.DEFAULT;
+
+                if (match(TokenType.PUB)) {
+                    visibility = Visibility.PUBLIC;
+                } else if (match(TokenType.PRI)) {
+                    visibility = Visibility.PRIVATE;
+                }
+
+                Token next = peek();
+                if (next.type() == TokenType.VAR || next.type() == TokenType.VAL) {
+                    fields.add(parseVarDecl(visibility));
+                } else if (next.type() == TokenType.IDENTIFIER && lookAhead(1).type() == TokenType.LPAREN) {
+                    methods.add(parseMethodDecl(visibility));
+                } else {
+                    throw new ParseException("Unexpected token in class body: " + next);
+                }
+            }
+
+            expect(TokenType.RBRACE);
+            return new ClassDecl(className, parent, interfaces, fields, methods);
+        } finally {
+            scopeStack.pop();
+        }
     }
 
     private InterfaceDecl parseInterfaceDecl() {
@@ -226,9 +242,9 @@ public class RecursiveDescentParser implements Parser {
         // Handle optional parent interfaces via 'impl'
         List<String> parents = new ArrayList<>();
         if (match(TokenType.IMPL)) {
-            parents.add(expect(TokenType.IDENTIFIER).lexeme());
+            parents.add(parseQualifiedName());
             while (match(TokenType.COMMA)) {
-                parents.add(expect(TokenType.IDENTIFIER).lexeme());
+                parents.add(parseQualifiedName());
             }
         }
 
@@ -252,27 +268,27 @@ public class RecursiveDescentParser implements Parser {
     }
 
     /**
-     * Parses a variable declaration with optional initializer.
+     * Parses a variable declaration.
+     * <p>
+     * - Variables may be declared with {@code var} (mutable) or {@code val} (immutable).
+     * - A type annotation is required (e.g., {@code var count: Int}).
+     * - Local variables (inside methods) must include an initializer.
+     * - Fields (class members) may omit the initializer; they will receive a default
+     *   value during code generation (e.g., 0 for Int, "" for Text, false for Bool).
      *
-     * @param visibility the visibility modifier for the variable
-     * @return the parsed {@link VarDecl}
-     * @throws ParseException if syntax is invalid
+     * @param visibility the visibility modifier for this variable (public/private/etc.)
+     * @return a {@link VarDecl} AST node
+     * @throws ParseException if the syntax is invalid
      */
     private VarDecl parseVarDecl(Visibility visibility) {
-        boolean isMutable;
-
-        if (match(TokenType.VAR)) {
-            isMutable = true;
-        } else if (match(TokenType.VAL)) {
-            isMutable = false;
-        } else {
+        boolean isMutable = match(TokenType.VAR);
+        if (!isMutable && !match(TokenType.VAL)) {
             throw new ParseException("Expected 'var' or 'val'");
         }
 
         String varName = expect(TokenType.IDENTIFIER).lexeme();
         expect(TokenType.COLON);
 
-        // Allow a variable type to be either identifier or array
         String typeName;
         if (match(TokenType.LBRACKET)) {
             typeName = "[" + expect(TokenType.IDENTIFIER).lexeme() + "]";
@@ -281,27 +297,65 @@ public class RecursiveDescentParser implements Parser {
             typeName = expect(TokenType.IDENTIFIER).lexeme();
         }
 
-        if (!match(TokenType.ASSIGN)) {
-            throw new ParseException("Expected '=' to initialize variable '" + varName + "' after type declaration.");
+        Expression initializer = null;
+
+        if (inMethodScope()) {
+            // Locals MUST have initializer
+            expect(TokenType.ASSIGN);
+            initializer = parseExpression();
+        } else if (currentScope() == ScopeKind.CLASS) {
+            // Fields MAY have initializer
+            if (match(TokenType.ASSIGN)) {
+                initializer = parseExpression();
+            }
+        } else {
+            throw new ParseException("Variable declaration not allowed in " + currentScope());
         }
 
-        Expression initializer = parseExpression();
         return new VarDecl(varName, typeName, initializer, isMutable, visibility);
     }
 
     /**
-     * Parses a method declaration including parameters, return type, and body.
+     * Parses a method declaration, including header and body.
+     * <p>
+     * Special handling is applied for the {@code entry} method, which is the program
+     * entry point. The {@code entry} method must have the following signature:
+     * <pre>
+     * entry(args: [Text]): void
+     * </pre>
+     * and must appear inside a class (not an interface).
      *
-     * @param visibility the visibility modifier for the method
+     * @param visibility the visibility modifier of the method
      * @return the parsed {@link MethodDecl}
-     * @throws ParseException if syntax is invalid
      */
     private MethodDecl parseMethodDecl(Visibility visibility) {
-        MethodHeader header = parseMethodHeader();
-        expect(TokenType.LBRACE);
-        List<Statement> body = parseStatements();
-        expect(TokenType.RBRACE);
-        return new MethodDecl(header.name(), header.params(), header.returnType(), body, visibility);
+        scopeStack.push(ScopeKind.METHOD);
+        try {
+            MethodHeader header = parseMethodHeader();
+
+            // Special-case check for entry method
+            if (header.name().equals("entry")) {
+                if (header.params().size() != 1) {
+                    throw new ParseException("entry() must have exactly one parameter: args: [Text]");
+                }
+                MethodDecl.Parameter param = header.params().get(0);
+                if (!param.name().equals("args") || !param.type().equals("[Text]")) {
+                    throw new ParseException("entry() parameter must be 'args: [Text]'");
+                }
+                if (!header.returnType().equals("void")) {
+                    throw new ParseException("entry() must have return type void");
+                }
+                // optionally: check scopeStack.peek() == ScopeKind.CLASS
+            }
+
+            expect(TokenType.LBRACE);
+            List<Statement> body = parseStatements();
+            expect(TokenType.RBRACE);
+
+            return new MethodDecl(header.name(), header.params(), header.returnType(), body, visibility);
+        } finally {
+            scopeStack.pop();
+        }
     }
 
     private MethodDecl parseInterfaceMethod() {
@@ -558,15 +612,20 @@ public class RecursiveDescentParser implements Parser {
      * @throws ParseException if a closing brace is missing or statements are invalid
      */
     private BlockStmt parseBlock() {
-        List<Statement> statements = new ArrayList<>();
+        scopeStack.push(ScopeKind.BLOCK);
+        try {
+            List<Statement> statements = new ArrayList<>();
 
-        // We've already consumed the opening '{' before calling this method
-        while (!check(TokenType.RBRACE) && !isAtEnd()) {
-            statements.add(parseStatement());
+            // We've already consumed the opening '{' before calling this method
+            while (!check(TokenType.RBRACE) && !isAtEnd()) {
+                statements.add(parseStatement());
+            }
+
+            expect(TokenType.RBRACE); // consume '}'
+            return new BlockStmt(statements);
+        } finally {
+            scopeStack.pop();
         }
-
-        expect(TokenType.RBRACE); // consume '}'
-        return new BlockStmt(statements);
     }
 
     /**
@@ -580,28 +639,70 @@ public class RecursiveDescentParser implements Parser {
     }
 
     /**
-     * Parses assignment expressions.
+     * Parses assignment expressions, including compound assignments (+=, -=, etc.).
+     *
      * Recognizes assignment operators and validates left-hand side targets.
      *
      * @return a parsed {@link Expression} representing assignment or lower-precedence expressions
      * @throws ParseException if assignment target is invalid
      */
     private Expression parseAssignment() {
-        Expression expr = parseEquality();
+        Expression expr = parseLogicalOr();
 
-        if (match(TokenType.ASSIGN)) {
-            Token equals = previous();
+        if (match(TokenType.ASSIGN, TokenType.PLUS_EQ, TokenType.MINUS_EQ,
+                TokenType.STAR_EQ, TokenType.SLASH_EQ, TokenType.MOD_EQ)) {
+            Token operator = previous();
             Expression value = parseAssignment();
 
-            if (expr instanceof VariableExpr) {
-                return AssignExpr.of(((VariableExpr) expr).name(), value);
-            } else if (expr instanceof GetExpr) {
-                return new SetExpr(((GetExpr) expr).target(), ((GetExpr) expr).field(), value);
+            // Handle compound assignments as sugar: x += y -> x = x + y
+            if (operator.type() != TokenType.ASSIGN) {
+                String opSymbol = switch (operator.type()) {
+                    case PLUS_EQ  -> "+";
+                    case MINUS_EQ -> "-";
+                    case STAR_EQ  -> "*";
+                    case SLASH_EQ -> "/";
+                    case MOD_EQ   -> "%";
+                    default -> throw new IllegalStateException("Unexpected compound assignment: " + operator.type());
+                };
+                value = new BinaryExpr(expr, opSymbol, value);
             }
 
-            throw new ParseException("Invalid assignment target at " + equals);
+            if (expr instanceof VariableExpr v) {
+                return AssignExpr.of(v.name(), value);
+            } else if (expr instanceof GetExpr g) {
+                return new SetExpr(g.target(), g.field(), value);
+            }
+            throw new ParseException("Invalid assignment target at " + operator);
         }
 
+        return expr;
+    }
+
+    /**
+     * Parses logical OR expressions (||).
+     */
+    private Expression parseLogicalOr() {
+        Expression expr = parseLogicalAnd();
+
+        while (match(TokenType.OR)) { // '||'
+            Token operator = previous();
+            Expression right = parseLogicalAnd();
+            expr = new BinaryExpr(expr, operator.lexeme(), right);
+        }
+        return expr;
+    }
+
+    /**
+     * Parses logical AND expressions (&&).
+     */
+    private Expression parseLogicalAnd() {
+        Expression expr = parseEquality();
+
+        while (match(TokenType.AND)) { // '&&'
+            Token operator = previous();
+            Expression right = parseEquality();
+            expr = new BinaryExpr(expr, operator.lexeme(), right);
+        }
         return expr;
     }
 
@@ -664,12 +765,11 @@ public class RecursiveDescentParser implements Parser {
     private Expression parseFactor() {
         Expression expr = parseUnary();
 
-        while (match(TokenType.STAR, TokenType.SLASH)) {
+        while (match(TokenType.STAR, TokenType.SLASH, TokenType.MOD)) {
             Token operator = previous();
             Expression right = parseUnary();
             expr = new BinaryExpr(expr, operator.lexeme(), right);
         }
-
         return expr;
     }
 
@@ -679,12 +779,11 @@ public class RecursiveDescentParser implements Parser {
      * @return a parsed {@link Expression}
      */
     private Expression parseUnary() {
-        if (match(TokenType.MINUS)) {
+        if (match(TokenType.MINUS, TokenType.BANG)) { // '-' or '!'
             Token operator = previous();
             Expression right = parseUnary();
             return new UnaryExpr(operator.lexeme(), right);
         }
-
         return parsePrimary();
     }
 
@@ -695,9 +794,8 @@ public class RecursiveDescentParser implements Parser {
      * @throws ParseException if the token is unexpected or malformed
      */
     private Expression parsePrimary() {
-
         if (check(TokenType.LBRACKET)) {
-            consume(); // consume '['
+            consume();
             List<Expression> elements = new ArrayList<>();
             if (!check(TokenType.RBRACKET)) {
                 do {
@@ -709,15 +807,13 @@ public class RecursiveDescentParser implements Parser {
         }
 
         Token token = expectAny(TokenType.IDENTIFIER, TokenType.INT_LITERAL,
-                TokenType.TEXT_LITERAL, TokenType.FLOAT_LITERAL, TokenType.TRUE, TokenType.FALSE);
+                TokenType.TEXT_LITERAL, TokenType.FLOAT_LITERAL, TokenType.TRUE,
+                TokenType.FALSE, TokenType.NULL);
 
         Expression expr;
-
         switch (token.type()) {
             case IDENTIFIER:
                 expr = new VariableExpr(token.lexeme());
-
-                // Check for function/constructor call directly after identifier
                 if (match(TokenType.LPAREN)) {
                     List<Expression> args = new ArrayList<>();
                     if (peek().type() != TokenType.RPAREN) {
@@ -729,7 +825,6 @@ public class RecursiveDescentParser implements Parser {
                     expr = new CallExpr(expr, args);
                 }
                 break;
-
             case INT_LITERAL:
                 expr = new LiteralExpr(Integer.parseInt(token.lexeme()));
                 break;
@@ -745,11 +840,13 @@ public class RecursiveDescentParser implements Parser {
             case FALSE:
                 expr = new LiteralExpr(false);
                 break;
+            case NULL:
+                expr = new LiteralExpr(null);
+                break;
             default:
                 throw new ParseException("Unexpected token in expression: " + token);
         }
 
-        // Handle chained member access and method calls (e.g. System.out.print())
         while (true) {
             if (match(TokenType.DOT)) {
                 String name = expect(TokenType.IDENTIFIER).lexeme();
@@ -763,15 +860,14 @@ public class RecursiveDescentParser implements Parser {
                         } while (match(TokenType.COMMA));
                     }
                     expect(TokenType.RPAREN);
-                    expr = new CallExpr(target, args); // e.g., System.out.print(...)
+                    expr = new CallExpr(target, args);
                 } else {
-                    expr = target; // field access: obj.field
+                    expr = target;
                 }
             } else {
                 break;
             }
         }
-
         return expr;
     }
 

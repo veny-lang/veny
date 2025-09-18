@@ -114,4 +114,5 @@ Identifier    = /* token: IDENTIFIER */ ;
 IntLiteral    = /* token: INT_LITERAL */ ;
 FloatLiteral  = /* token: FLOAT_LITERAL */ ;
 StringLiteral = /* token: TEST_LITERAL */ ;
+EntryMethodDecl = "entry" "(" "args" ":" "[" "Text" "]" ")" ":" "void" Block
 ```
