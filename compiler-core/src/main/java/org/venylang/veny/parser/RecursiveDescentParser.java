@@ -825,23 +825,8 @@ public class RecursiveDescentParser implements Parser {
                     expr = new CallExpr(expr, args);
                 }
                 break;
-            case INT_LITERAL:
-                expr = new LiteralExpr(Integer.parseInt(token.lexeme()));
-                break;
-            case FLOAT_LITERAL:
-                expr = new LiteralExpr(Float.parseFloat(token.lexeme()));
-                break;
-            case TEXT_LITERAL:
-                expr = new LiteralExpr(token.lexeme());
-                break;
-            case TRUE:
-                expr = new LiteralExpr(true);
-                break;
-            case FALSE:
-                expr = new LiteralExpr(false);
-                break;
-            case NULL:
-                expr = new LiteralExpr(null);
+            case INT_LITERAL, FLOAT_LITERAL, TEXT_LITERAL, TRUE, FALSE, NULL:
+                expr = new LiteralExpr(token.literal());
                 break;
             default:
                 throw new ParseException("Unexpected token in expression: " + token);
@@ -915,12 +900,7 @@ public class RecursiveDescentParser implements Parser {
      */
     private Expression parseLiteralExpr() {
         Token literal = consume();
-        if (literal.type() == TokenType.INT_LITERAL) {
-            return new LiteralExpr(Integer.parseInt(literal.lexeme()));
-        } else if (literal.type() == TokenType.TEXT_LITERAL) {
-            return new LiteralExpr(literal.lexeme());
-        }
-        throw new ParseException("Invalid literal: " + literal);
+        return new LiteralExpr(literal.literal());
     }
 
     // Parse binary expressions (for the future, can be expanded)
