@@ -21,10 +21,7 @@ import org.venylang.veny.parser.ast.*;
 import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
 import org.venylang.veny.semantic.symbols.*;
-import org.venylang.veny.semantic.types.BuiltinType;
-import org.venylang.veny.semantic.types.ClassType;
-import org.venylang.veny.semantic.types.InterfaceType;
-import org.venylang.veny.semantic.types.TypeResolver;
+import org.venylang.veny.semantic.types.*;
 import org.venylang.veny.util.ErrorReporter;
 import org.venylang.veny.util.Visibility;
 
@@ -55,6 +52,9 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     private final GlobalScope globalScope;
 
     private final ErrorReporter errorReporter;
+
+    /** Track loop nesting for break/continue */
+    private int loopDepth = 0;
 
     public SemanticAnalyzer(GlobalScope globalScope, ErrorReporter errorReporter) {
         this.globalScope = globalScope;
@@ -142,6 +142,9 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         for (ClassDecl cls : node.classes()) {
             cls.accept(this);
         }
+        for (InterfaceDecl iface : node.interfaces()) {
+            iface.accept(this);
+        }
         return null;
     }
 
@@ -160,14 +163,16 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         globalScope.define(classSymbol);
         enterScope(classSymbol);
 
-        for (VarDecl field : node.fields()) {
-            field.accept(this);
+        try {
+            for (VarDecl field : node.fields()) {
+                field.accept(this);
+            }
+            for (MethodDecl method : node.methods()) {
+                method.accept(this);
+            }
+        } finally {
+            exitScope();
         }
-        for (MethodDecl method : node.methods()) {
-            method.accept(this);
-        }
-
-        exitScope();
         return null;
     }
 
@@ -178,31 +183,42 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         }
 
         if (globalScope.resolveLocal(node.name()) != null) {
-            throw new SemanticException("Interface '" + node.name() + "' is already defined.");
+            error("Interface '" + node.name() + "' is already defined.");
+            //throw new SemanticException("Interface '" + node.name() + "' is already defined.");
+            return null;
         }
 
         InterfaceSymbol ifaceSymbol = new InterfaceSymbol(node.name(), globalScope);
         globalScope.define(ifaceSymbol);
         enterScope(ifaceSymbol);
 
-        // Visit interface members (methods only)
-        for (MethodDecl method : node.methods()) {
-            method.accept(this);
+        try {
+            // Visit interface members (methods only)
+            for (MethodDecl method : node.methods()) {
+                method.accept(this);
+            }
+        } finally {
+            exitScope();
         }
-
-        exitScope();
-        return null;    }
+        return null;
+    }
 
     /** {@inheritDoc} */
     @Override
     public Void visit(VarDecl node) {
         if (currentScope().resolveLocal(node.name()) != null) {
-            throw new SemanticException("Variable '" + node.name() + "' is already declared in this scope.");
+            error("Variable '" + node.name() + "' is already declared in this scope.");
+            //throw new SemanticException("Variable '" + node.name() + "' is already declared in this scope.");
+            return null;
         }
 
         Type type = resolveType(node.typeName());
         VariableSymbol var = new VariableSymbol(
-                node.name(), type, node.visibility(), false, true // TODO: distinguish parameter/val
+                node.name(),
+                type,
+                node.visibility(),
+                false, // isParameter
+                !node.isMutable()  // isVal
         );
         currentScope().define(var);
 
@@ -225,32 +241,34 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         currentScope().define(method);
         enterScope(method);
 
-        for (MethodDecl.Parameter param : node.parameters()) {
-            // 1. Resolve the type of the parameter
-            Type paramType = resolveType(param.type());
+        try {
+            for (MethodDecl.Parameter param : node.parameters()) {
+                // 1. Resolve the type of the parameter
+                Type paramType = resolveType(param.type());
 
-            // 2. Create a variable symbol
-            VariableSymbol paramSymbol = new VariableSymbol(
-                    param.name(),
-                    paramType,
-                    Visibility.PUBLIC, // parameters are usually accessible within the method
-                    true,  // isParameter
-                    false  // not a val by default (or adjust based on your language rules)
-            );
+                // 2. Create a variable symbol
+                VariableSymbol paramSymbol = new VariableSymbol(
+                        param.name(),
+                        paramType,
+                        Visibility.PUBLIC, // parameters are usually accessible within the method
+                        true,  // isParameter
+                        false  // // not a val by default
+                );
 
-            // 3. Define it in the current (method) scope
-            currentScope().define(paramSymbol);
-        }
-
-        // Only visit the body if it exists (interfaces will have null)
-        if (node.body() != null) {
-            for (Statement stmt : node.body()) {
-                stmt.accept(this);
+                // 3. Define it in the current (method) scope
+                currentScope().define(paramSymbol);
             }
-        }
 
-        // Exit method scope
-        exitScope();
+            // Only visit the body if it exists (interfaces will have null)
+            if (node.body() != null) {
+                for (Statement stmt : node.body()) {
+                    stmt.accept(this);
+                }
+            }
+        } finally {
+            // Exit method scope
+            exitScope();
+        }
         return null;
     }
 
@@ -259,8 +277,13 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(BlockStmt node) {
-        for (Statement stmt : node.statements()) {
-            stmt.accept(this);
+        enterScope(new LocalScope(currentScope()));
+        try {
+            for (Statement stmt : node.statements()) {
+                stmt.accept(this);
+            }
+        } finally {
+            exitScope();
         }
         return null;
     }
@@ -279,16 +302,28 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(WhileStmt node) {
+        loopDepth++;
         node.condition().accept(this);
         node.body().accept(this);
+        loopDepth--;
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
     public Void visit(ForStmt node) {
+        loopDepth++;
         node.iterable().accept(this);
-        node.body().accept(this);
+        enterScope(new LocalScope(currentScope()));
+        try {
+            // Define loop variable
+            VariableSymbol var = new VariableSymbol(node.variable(), TypeResolver.resolveBuiltin("Unknown"), Visibility.DEFAULT, false, false);
+            currentScope().define(var);
+            node.body().accept(this);
+        } finally {
+            exitScope();
+        }
+        loopDepth--;
         return null;
     }
 
@@ -323,20 +358,27 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(BreakStmt node) {
-        // Optional: Validate we're inside a loop
+        if (loopDepth == 0) {
+            error("'break' outside of loop");
+        }
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
     public Void visit(ContinueStmt node) {
-        // Optional: Validate we're inside a loop
+        if (loopDepth == 0) {
+            error("'break' outside of loop");
+        }
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
     public Void visit(ArrayLiteralExpr node) {
+        for (Expression elem : node.elements()) {
+            elem.accept(this);
+        }
         return null;
     }
 
@@ -378,7 +420,14 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(AssignExpr node) {
-        // TODO: Analyze target and value expressions
+        node.value().accept(this);
+
+        Symbol targetSym = currentScope().resolve(node.name());
+        if (targetSym == null) {
+            error("Undefined variable: " + node.name());
+        } else if (targetSym instanceof VariableSymbol varSym && !varSym.isMutable()) {
+            error("Cannot assign to immutable variable: " + node.name());
+        }
         return null;
     }
 
@@ -389,13 +438,20 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         for (Expression arg : node.arguments()) {
             arg.accept(this);
         }
+        // Optional: validate callee type / arity
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
     public Void visit(NewExpr node) {
-        // TODO: Type/class constructor check
+        Symbol cls = currentScope().resolve(node.className());
+        if (!(cls instanceof ClassSymbol)) {
+            error("Unknown class: " + node.className());
+        }
+        for (Expression arg : node.arguments()) {
+            arg.accept(this);
+        }
         return null;
     }
 
@@ -409,8 +465,9 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(SetExpr node) {
-        node.target().accept(this);
+        node.target().accept(this); // resolve object
         node.value().accept(this);
+        // Optional: validate field exists in class/type
         return null;
     }
 
@@ -423,8 +480,16 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
      * @return the resolved {@code Type} or {@code null} if not found
      */
     private Type resolveType(String typeName) {
+        if (typeName.startsWith("[") && typeName.endsWith("]")) {
+            String inner = typeName.substring(1, typeName.length() - 1);
+            Type elemType = resolveType(inner);
+            return new ArrayType(elemType);
+        }
+
         BuiltinType builtin = TypeResolver.resolveBuiltin(typeName);
-        if (builtin != null) return builtin;
+        if (builtin != null) {
+            return builtin;
+        }
 
         Symbol sym = currentScope().resolve(typeName);
         if (sym instanceof ClassSymbol clsSym) {
