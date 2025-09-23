@@ -77,6 +77,16 @@ public final class VenyInt implements VenyObject {
     }
 
     /**
+     * Alias for subtract
+     *
+     * @param other
+     * @return
+     */
+    public VenyInt sub(VenyInt other) {
+        return subtract(other);
+    }
+
+    /**
      * Returns a new {@code VenyInt} representing the product of this and another {@code VenyInt}.
      *
      * @param other the value to multiply
@@ -84,6 +94,15 @@ public final class VenyInt implements VenyObject {
      */
     public VenyInt multiply(VenyInt other) {
         return new VenyInt(this.value * other.value);
+    }
+
+    /**
+     * Alias for multiply
+     * @param other
+     * @return
+     */
+    public VenyInt mul(VenyInt other) {
+        return multiply(other);
     }
 
     /**
@@ -98,6 +117,15 @@ public final class VenyInt implements VenyObject {
             throw new ArithmeticException("Division by zero");
         }
         return new VenyInt(this.value / other.value);
+    }
+
+    /**
+     * Alias for divide
+     * @param other
+     * @return
+     */
+    public VenyInt div(VenyInt other) {
+        return divide(other);
     }
 
     /**
@@ -170,6 +198,30 @@ public final class VenyInt implements VenyObject {
      */
     public VenyInt compareTo(VenyInt other) {
         return new VenyInt(Integer.compare(this.value, other.value));
+    }
+
+    public VenyBool eq(VenyInt other) {
+        return VenyBool.of(this.value == other.value);
+    }
+
+    public VenyBool neq(VenyInt other) {
+        return VenyBool.of(this.value != other.value);
+    }
+
+    public VenyBool lt(VenyInt other) {
+        return VenyBool.of(this.value < other.value);
+    }
+
+    public VenyBool lte(VenyInt other) {
+        return VenyBool.of(this.value <= other.value);
+    }
+
+    public VenyBool gt(VenyInt other) {
+        return VenyBool.of(this.value > other.value);
+    }
+
+    public VenyBool gte(VenyInt other) {
+        return VenyBool.of(this.value >= other.value);
     }
 
     // ─────────────────────────────

@@ -74,6 +74,18 @@ public final class VenyText implements VenyObject {
         return new VenyText(this.value + other.value);
     }
 
+    public VenyText add(VenyText other) {
+        return append(other);
+    } // + operator
+
+    public VenyBool eq(VenyText other) {
+        return equalsTo(other);
+    }
+
+    public VenyBool neq(VenyText other) {
+        return VenyBool.of(!equalsTo(other).raw());
+    }
+
     /**
      * Compares this text to another {@link VenyObject} for string equality.
      *

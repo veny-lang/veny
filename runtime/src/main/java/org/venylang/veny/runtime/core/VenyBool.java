@@ -110,6 +110,14 @@ public class VenyBool implements VenyObject {
         return of(this.value == b.value);
     }
 
+    public VenyBool eq(VenyBool other) {
+        return equalsTo(other);
+    }
+
+    public VenyBool neq(VenyBool other) {
+        return of(!equalsTo(other).raw());
+    }
+
     /**
      * Returns the textual representation of this boolean.
      *

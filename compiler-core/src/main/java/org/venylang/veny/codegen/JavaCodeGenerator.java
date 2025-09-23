@@ -299,16 +299,47 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(VarStmt node) {
+        String javaType = mapType(node.type()); // infer or declared type
+        String initializer = (node.initializer() != null)
+                ? exprToString(node.initializer())
+                : "null"; // or default for primitives
+        builder.appendLine(javaType + " " + node.name() + " = " + initializer + ";");
         return null;
     }
 
     @Override
     public Void visit(ValStmt node) {
+        String javaType = mapType(node.type());
+        String initializer = (node.initializer() != null)
+                ? exprToString(node.initializer())
+                : "null";
+        builder.appendLine("final " + javaType + " " + node.name() + " = " + initializer + ";");
         return null;
     }
 
     @Override
     public Void visit(BinaryExpr node) {
+        String left = exprToString(node.left());
+        String right = exprToString(node.right());
+
+        String operator = node.operator();
+        String opMethod = switch (operator) {
+            case "+"  -> "add";
+            case "-"  -> "sub";
+            case "*"  -> "mul";
+            case "/"  -> "div";
+            case "==" -> "eq";
+            case "!=" -> "neq";
+            case "<"  -> "lt";
+            case "<=" -> "lte";
+            case ">"  -> "gt";
+            case ">=" -> "gte";
+            default   -> throw new IllegalStateException("Unsupported operator: " + operator);
+        };
+
+        // Return as string instead of appending directly
+        String exprStr = left + "." + opMethod + "(" + right + ")";
+        builder.appendLine(exprStr + ";"); // if this is a full statement
         return null;
     }
 
@@ -420,6 +451,12 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         };
     }
 
+    /**
+     * Given an expression generate a compilable Java code
+     *
+     * @param expr input expression
+     * @return Java code
+     */
     private String exprToJava(Expression expr) {
         if (expr == null) {
             return "null";
@@ -457,7 +494,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
             Expression calleeExpr = call.callee();
 
-            System.out.println("CallExpr debug: calleeExpr class = " + calleeExpr.getClass().getSimpleName());
+            //DEBUG System.out.println("CallExpr debug: calleeExpr class = " + calleeExpr.getClass().getSimpleName());
 
             if (calleeExpr instanceof VariableExpr var) {
                 if (var.name().equals(currentClassName)) {
@@ -530,6 +567,48 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
         return "/* unsupported expr */";
     }
+
+    private String exprToString(Expression expr) {
+        if (expr == null) {
+            return "null";
+        }
+
+        if (expr instanceof LiteralExpr lit) {
+            if (lit.value() instanceof String s) return "\"" + s.replace("\"", "\\\"") + "\"";
+            return lit.value().toString();
+        }
+
+        if (expr instanceof VariableExpr var) return var.name();
+
+        if (expr instanceof BinaryExpr bin) {
+            String left  = exprToString(bin.left());
+            String right = exprToString(bin.right());
+            String op = bin.operator(); // can map to method if needed
+            return "(" + left + " " + op + " " + right + ")";
+        }
+
+        if (expr instanceof UnaryExpr un) return un.operator() + exprToString(un.operand());
+
+        if (expr instanceof CallExpr call) {
+            String args = call.arguments().stream()
+                    .map(this::exprToString)
+                    .collect(Collectors.joining(", "));
+            return exprToString(call.callee()) + "(" + args + ")";
+        }
+
+        if (expr instanceof NewExpr ne) return ne.className() + "()";
+
+        if (expr instanceof GetExpr get) return exprToString(get.target()) + "." + get.field();
+
+        if (expr instanceof SetExpr set) return exprToString(set.target()) + "." + set.field() + " = " + exprToString(set.value());
+
+        if (expr instanceof ArrayLiteralExpr arr) {
+            return "[" + arr.elements().stream().map(this::exprToString).collect(Collectors.joining(", ")) + "]";
+        }
+
+        if (expr instanceof AssignExpr assign) return exprToString(assign.value()) + " = " + exprToString(assign.value());
+
+        return "<unsupported-expr>";    }
 
     /**
      * Returns a standard auto-generated file header.

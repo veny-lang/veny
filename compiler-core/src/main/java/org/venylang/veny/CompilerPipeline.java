@@ -246,7 +246,7 @@ public class CompilerPipeline {
                     Path outFile = packageDir.resolve(cls.name() + ".java");
                     try {
                         Files.writeString(outFile, javaCode, StandardCharsets.UTF_8);
-                        System.out.println("WROTE: " + outFile.toAbsolutePath());
+                        //DEBUG System.out.println("WROTE: " + outFile.toAbsolutePath());
                     } catch (IOException ex) {
                         System.err.println("Failed to write file " + outFile + ": " + ex.getMessage());
                     }
@@ -267,7 +267,7 @@ public class CompilerPipeline {
                     Path outFile = packageDir.resolve(iface.name() + ".java");
                     try {
                         Files.writeString(outFile, javaCode, StandardCharsets.UTF_8);
-                        System.out.println("WROTE: " + outFile.toAbsolutePath());
+                        //DEBUG System.out.println("WROTE: " + outFile.toAbsolutePath());
                     } catch (IOException ex) {
                         System.err.println("Failed to write file " + outFile + ": " + ex.getMessage());
                     }
