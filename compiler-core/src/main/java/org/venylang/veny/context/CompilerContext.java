@@ -23,6 +23,7 @@ import org.venylang.veny.semantic.Symbol;
 import org.venylang.veny.semantic.symbols.GlobalScope;
 import org.venylang.veny.util.ErrorReporter;
 import org.venylang.veny.util.SourceRoot;
+import org.venylang.veny.util.UserSourceRoot;
 
 import java.util.List;
 
@@ -60,4 +61,12 @@ public class CompilerContext {
     }
 
     public List<SourceRoot> sourceRoots() { return sourceRoots; }
+
+    public UserSourceRoot getUserSourceRoot() {
+        return sourceRoots.stream()
+            .filter(sr -> sr instanceof UserSourceRoot)
+            .map(sr -> (UserSourceRoot) sr)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("No UserSourceRoot found"));
+    }
 }

@@ -44,7 +44,10 @@ import org.venylang.veny.util.SourceRoot;
 import org.venylang.veny.util.source.SrcFilePosMap;
 import org.venylang.veny.util.source.SrcFileSet;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -202,8 +205,86 @@ public class CompilerPipeline {
         }
 
         if (generateCode) {
-            String javaCode = JavaCodeGenerator.of(program).getCode();
-            System.out.println("Generated Java code:\n" + javaCode);
+            Path sourcePath = compilerContext.getUserSourceRoot().rootPath();
+            Path genDir = sourcePath.resolve("generated");
+
+            // Ensure generated root exists
+            try {
+                Files.createDirectories(genDir);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to create generated directory: " + genDir, e);
+            }
+
+            // 1) Per-class (and per-interface) files
+            for (VenyFile venyFile : astNodes) {
+                String packageName = venyFile.packageName() == null ? "" : venyFile.packageName();
+
+                // Helper: compute package directory under generated/
+                Path packageDir = packageName.isEmpty()
+                        ? genDir
+                        : genDir.resolve(packageName.replace('.', File.separatorChar));
+                try {
+                    Files.createDirectories(packageDir);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to create package directory: " + packageDir, e);
+                }
+
+                // Emit one .java per class
+                for (ClassDecl cls : venyFile.classes()) {
+                    // Create a VenyFile that contains only this class (preserve user imports)
+                    VenyFile single = new VenyFile(packageName, venyFile.imports(), List.of(cls), List.of());
+
+                    String javaCode;
+                    try {
+                        javaCode = JavaCodeGenerator.of(new Program(List.of(single))).getCode();
+                    } catch (Exception ex) {
+                        System.err.println("Code generation failed for class " + cls.name() + ": " + ex.getMessage());
+                        ex.printStackTrace();
+                        continue;
+                    }
+
+                    Path outFile = packageDir.resolve(cls.name() + ".java");
+                    try {
+                        Files.writeString(outFile, javaCode, StandardCharsets.UTF_8);
+                        System.out.println("WROTE: " + outFile.toAbsolutePath());
+                    } catch (IOException ex) {
+                        System.err.println("Failed to write file " + outFile + ": " + ex.getMessage());
+                    }
+                }
+
+                // Optionally: emit one .java per interface as well
+                for (InterfaceDecl iface : venyFile.interfaces()) {
+                    VenyFile singleIface = new VenyFile(packageName, venyFile.imports(), List.of(), List.of(iface));
+                    String javaCode;
+                    try {
+                        javaCode = JavaCodeGenerator.of(new Program(List.of(singleIface))).getCode();
+                    } catch (Exception ex) {
+                        System.err.println("Code generation failed for interface " + iface.name() + ": " + ex.getMessage());
+                        ex.printStackTrace();
+                        continue;
+                    }
+
+                    Path outFile = packageDir.resolve(iface.name() + ".java");
+                    try {
+                        Files.writeString(outFile, javaCode, StandardCharsets.UTF_8);
+                        System.out.println("WROTE: " + outFile.toAbsolutePath());
+                    } catch (IOException ex) {
+                        System.err.println("Failed to write file " + outFile + ": " + ex.getMessage());
+                    }
+                }
+            }
+
+            // 2) Also print the big "all-in-one" program to console for debugging
+            try {
+                String allJava = JavaCodeGenerator.of(program).getCode();
+                System.out.println("==================================================");
+                System.out.println("Full Generated Java code (all files combined):");
+                System.out.println("==================================================");
+                System.out.println(allJava);
+            } catch (Exception ex) {
+                System.err.println("Failed to generate combined program Java for console output: " + ex.getMessage());
+                ex.printStackTrace();
+            }
         }
     }
 

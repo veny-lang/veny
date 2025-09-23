@@ -23,6 +23,9 @@ import org.venylang.veny.parser.ast.statement.*;
 import org.venylang.veny.util.Visibility;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +57,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     private String currentPackageName = null; // tracks package during file traversal
     private boolean insideEntryMethod = false; // tracks if inside entry() method
     private String currentClassName = null;
+    private final Set<String> usedRuntimeImports = new HashSet<>();
 
     private JavaCodeGenerator() {}
 
@@ -86,31 +90,6 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             builder.appendRawLine(""); // separate files
         }
 
-        if (entryClassName != null) {
-            builder.appendRawLine(""); // space
-            builder.appendRawLine("// Main launcher class");
-            builder.appendLine("public class Main {")
-                    .indent()
-                    .appendLine("public static void main(String[] args) {")
-                    .indent()
-                    .appendLine("veny.lang.Text[] venyArgs = new veny.lang.Text[args.length];")
-                    .appendLine("for (int i = 0; i < args.length; i++) {")
-                    .indent()
-                    .appendLine("venyArgs[i] = veny.lang.Text.of(args[i]);")
-                    .unindent()
-                    .appendLine("}");
-
-            String fullEntryClass = (entryPackageName != null && !entryPackageName.isEmpty())
-                    ? entryPackageName + "." + entryClassName
-                    : entryClassName;
-
-            builder.appendLine("new " + fullEntryClass + "().entry(venyArgs);")
-                    .unindent()
-                    .appendLine("}")
-                    .unindent()
-                    .appendLine("}");
-        }
-
         return null;
     }
 
@@ -123,25 +102,26 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             builder.appendRawLine(""); // blank line after package
         }
 
-        for (String imp : node.imports()) {
-            builder.appendLine("import " + imp + ";");
-        }
-
-        if (!node.imports().isEmpty()) {
-            builder.appendRawLine(""); // blank line after imports
-        }
-
         for (ClassDecl cls : node.classes()) {
             cls.accept(this);
             builder.appendRawLine(""); // separate classes
         }
 
+        // Now emit imports
+        if (!usedRuntimeImports.isEmpty()) {
+            List<String> imports = usedRuntimeImports.stream()
+                .sorted()
+                .map(imp -> "import " + imp + ";")
+                .toList();
+            builder.insertAfterPackage(imports);
+        }
         return null;
     }
 
     @Override
     public Void visit(ClassDecl node) {
         String prevClass = currentClassName;
+
         currentClassName = node.name(); // track current class
 
         StringBuilder classSignature = new StringBuilder("public class ").append(node.name());
@@ -157,8 +137,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             classSignature.append(String.join(", ", node.interfaces()));
         }
 
-        builder.appendLine(classSignature.toString())
-                .appendLine("{")
+        builder.appendLine(classSignature  + " {")
                 .indent();
 
         for (VarDecl field : node.fields()) {
@@ -172,6 +151,28 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         for (MethodDecl method : node.methods()) {
             method.accept(this);
             builder.appendRawLine(""); // Blank line between methods
+        }
+
+        // 🔍 Check if this class has an entry method
+        boolean hasEntry = node.methods().stream()
+                .anyMatch(m -> m.name().equals("entry"));
+
+        if (hasEntry) {
+            usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyText");
+
+            builder.appendRawLine("")
+                    .appendLine("// Auto-generated launcher for Veny's entry")
+                    .appendLine("public static void main(String[] args) {")
+                    .indent()
+                    .appendLine("VenyText[] venyArgs = new VenyText[args.length];")
+                    .appendLine("for (int i = 0; i < args.length; i++) {")
+                    .indent()
+                    .appendLine("venyArgs[i] = VenyText.of(args[i]);")
+                    .unindent()
+                    .appendLine("}")
+                    .appendLine("new " + node.name() + "().entry(venyArgs);")
+                    .unindent()
+                    .appendLine("}");
         }
 
         builder.unindent()
@@ -215,6 +216,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         String visibility = node.visibility().toString().toLowerCase();
         String prefix = visibility.equals("default") ? "" : visibility + " ";
 
+        // Parameters
         StringBuilder params = new StringBuilder();
         for (int i = 0; i < node.parameters().size(); i++) {
             var param = node.parameters().get(i);
@@ -226,10 +228,10 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             }
         }
 
+        // Method signature
+        String returnType = mapType(node.returnType());
         builder.appendLine(prefix + mapType(node.returnType()) + " " + node.name() + "(" + params + ") {")
                 .indent();
-        /*builder.appendLine(visibility + " " + mapType(node.returnType()) + " " + node.name() + "(" + params + ") {")
-                .indent();*/
 
         // mark if we're in entry()
         boolean prevInside = insideEntryMethod;
@@ -237,8 +239,14 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             insideEntryMethod = true;
         }
 
+        // Body
         for (Statement stmt : node.body()) {
             stmt.accept(this);
+        }
+
+        // If return type is void/Void → append VenyVoid.get()
+        if (returnType.equals("org.venylang.veny.runtime.core.VenyVoid")) {
+            builder.appendLine("return org.venylang.veny.runtime.core.VenyVoid.get();");
         }
 
         insideEntryMethod = prevInside; // restore previous state
@@ -269,6 +277,14 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(ReturnStmt node) {
+        if (node.value() == null) {
+            // No value → return VenyVoid.get()
+            builder.appendLine("return VenyVoid.get();");
+        } else {
+            // Return with expression
+            String exprCode = exprToJava(node.value());
+            builder.appendLine("return " + exprCode + ";");
+        }
         return null;
     }
 
@@ -373,31 +389,52 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     }
 
     private String mapType(String venyType) {
-        if (venyType == null) return "void";
+        if (venyType == null) {
+            usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyVoid");
+            return "VenyVoid";
+        }
 
-        // Handle array types like [Text]
         if (venyType.startsWith("[") && venyType.endsWith("]")) {
             String elem = venyType.substring(1, venyType.length() - 1);
             return mapType(elem) + "[]";
         }
 
         return switch (venyType) {
-            case "Text" -> "veny.lang.Text";
-            case "Int" -> "int";
-            case "Bool" -> "boolean";
-            case "Void", "void" -> "void";
-            default -> venyType; // assume it's a class/interface name
+            case "Text" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyText");
+                yield "VenyText";
+            }
+            case "Int" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyInt");
+                yield "VenyInt";
+            }
+            case "Bool" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyBool");
+                yield "VenyBool";
+            }
+            case "Void", "void" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyVoid");
+                yield "VenyVoid";
+            }
+            default -> venyType;
         };
     }
 
     private String exprToJava(Expression expr) {
-        if (expr == null) return "null";
+        if (expr == null) {
+            return "null";
+        }
 
         if (expr instanceof LiteralExpr lit) {
             if (lit.value() instanceof String s) {
-                return "veny.lang.Text.of(\"" + s.replace("\"", "\\\"") + "\")";
-            } else if (lit.value() instanceof Integer || lit.value() instanceof Boolean) {
-                return lit.value().toString();
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyText");
+                return "VenyText.of(\"" + s.replace("\"", "\\\"") + "\")";
+            } else if (lit.value() instanceof Integer i) {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyInt");
+                return "VenyInt.of(" + i + ")";
+            } else if (lit.value() instanceof Boolean b) {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyBool");
+                return "VenyBool.of(" + b + ")";
             }
         }
 
@@ -432,10 +469,13 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
             if (calleeExpr instanceof GetExpr get) {
                 String target = exprToJava(get.target());
-                // skip if target eventually evaluates to currentClassName
-                if (get.target() instanceof VariableExpr v && v.name().equals(currentClassName)) {
-                    return get.field() + "(" + args + ")";
+
+                // Special-case Console.println / Console.print
+                if (target.equals("Console") && (get.field().equals("println") || get.field().equals("print"))) {
+                    usedRuntimeImports.add("org.venylang.veny.runtime.core.ConsoleImpl");
+                    return "ConsoleImpl.instance()." + get.field() + "(" + args + ")";
                 }
+
                 return (target.isEmpty() ? "" : target + ".") + get.field() + "(" + args + ")";
             }
 

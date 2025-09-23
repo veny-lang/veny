@@ -100,6 +100,63 @@ public class CodeBuilder {
         return String.join("\n", lines);
     }
 
+  /**
+   * Inserts the given text immediately after the package declaration.
+   * If no package is present, inserts at the top of the file.
+   * Adds a blank line after the inserted text if a package exists.
+   *
+   * @param text the line to insert (without indentation)
+   * @return the current CodeBuilder instance for method chaining
+   */
+  public CodeBuilder insertAfterPackage(String text) {
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.startsWith("package ")) {
+                // insert after package
+                lines.add(i + 1, "");
+                lines.add(i + 2, text);
+                // add a single blank line after inserted imports
+                lines.add(i + 3, "");
+                return this;
+            }
+        }
+        // no package → insert at top
+        lines.add(0, text);
+        return this;
+    }
+
+    /**
+     * Inserts multiple lines immediately after the package declaration.
+     */
+    public CodeBuilder insertAfterPackage(List<String> newLines) {
+        int insertIndex = 0;
+        boolean hasPackage = false;
+
+        for (int i = 0; i < lines.size(); i++) {
+            String l = lines.get(i).trim();
+            if (l.startsWith("package ")) {
+                insertIndex = i + 1;
+                hasPackage = true;
+                break;
+            }
+        }
+
+        if (hasPackage) {
+            lines.add(insertIndex + newLines.size(), "");
+            insertIndex++;
+        }
+
+        // insert the new lines
+        lines.addAll(insertIndex, newLines);
+
+        // if package exists, add a single blank line after imports
+        if (hasPackage) {
+            lines.add(insertIndex + newLines.size(), "");
+        }
+
+        return this;
+    }
+
     /**
      * Returns a string of spaces corresponding to the current indentation level.
      *

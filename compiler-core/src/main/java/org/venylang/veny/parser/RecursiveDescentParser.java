@@ -352,6 +352,15 @@ public class RecursiveDescentParser implements Parser {
             List<Statement> body = parseStatements();
             expect(TokenType.RBRACE);
 
+            // Inject implicit return for void methods
+            if (header.returnType().equals("void")) {
+                boolean hasExplicitReturn = !body.isEmpty() &&
+                        body.get(body.size() - 1) instanceof ReturnStmt;
+                if (!hasExplicitReturn) {
+                    body.add(new ReturnStmt(null)); // or ReturnStmt(VoidExpr.get()) if you want explicit
+                }
+            }
+
             return new MethodDecl(header.name(), header.params(), header.returnType(), body, visibility);
         } finally {
             scopeStack.pop();
