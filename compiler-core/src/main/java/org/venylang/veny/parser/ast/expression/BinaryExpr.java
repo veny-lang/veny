@@ -30,7 +30,27 @@ import org.venylang.veny.parser.ast.Expression;
  * @param operator The binary operator (e.g., "+", "-", "*", "==").
  * @param right    The right-hand side expression.
  */
-public record BinaryExpr(Expression left, String operator, Expression right) implements Expression {
+public class BinaryExpr extends Expression {
+    private final Expression left;
+    private final String operator;
+    private final Expression right;
+
+    /**
+     * Constructs a BinaryExpr with the given operands and operator.
+     *
+     * @param left     The left-hand side expression.
+     * @param operator The binary operator (e.g., "+", "==").
+     * @param right    The right-hand side expression.
+     * @throws IllegalArgumentException if the operator is null or blank
+     */
+    public BinaryExpr(Expression left, String operator, Expression right) {
+        if (operator == null || operator.isBlank()) {
+            throw new IllegalArgumentException("Operator must not be null or blank");
+        }
+        this.left = left;
+        this.operator = operator;
+        this.right = right;
+    }
 
     /**
      * Creates a {@code BinaryExpr} instance with the given operands and operator.
@@ -48,6 +68,18 @@ public record BinaryExpr(Expression left, String operator, Expression right) imp
             throw new IllegalArgumentException("Operator must not be null or blank");
         }
         return new BinaryExpr(left, operator, right);
+    }
+
+    public Expression getLeft() {
+        return left;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public Expression getRight() {
+        return right;
     }
 
     /**

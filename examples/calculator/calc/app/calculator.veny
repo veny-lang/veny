@@ -1,0 +1,39 @@
+package calc.app
+
+class Calculator {
+    val a: Int
+    val b: Int
+    val op: Text
+
+    Calculator(a: Int, op: Text, b: Int) {
+        this.a = a
+        this.op = op
+        this.b = b
+    }
+
+    entry(args: [Text]): void {
+        val calc: Calculator = Calculator(Int.of(args[0]), args[1], Int.of(args[2]))
+        Console.println(calc.result())
+    }
+
+    result(): Int {
+        if (op == "+") {
+            return a + b
+        } else {
+            if (op == "-") {
+                return a - b
+            } else {
+                if (op == "*") {
+                    return a * b
+                } else {
+                    if (op == "/") {
+                        return a / b
+                    } else {
+                        Console.println("Unknown operator: " + op)
+                        return 0
+                    }
+                }
+            }
+        }
+    }
+}

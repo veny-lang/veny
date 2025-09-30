@@ -33,7 +33,7 @@ import org.venylang.veny.semantic.Type;
  *
  * @param elements The list of expressions representing the elements of the array.
  */
-public class ArrayLiteralExpr implements Expression {
+public class ArrayLiteralExpr extends Expression {
     private final List<Expression> elements;
     private Type elementType; // mutable so semantic analyzer can fill it in
 

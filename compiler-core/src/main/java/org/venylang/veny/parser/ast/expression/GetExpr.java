@@ -20,6 +20,8 @@ package org.venylang.veny.parser.ast.expression;
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
+import java.util.Objects;
+
 /**
  * Represents accessing a field or property from an object in the AST.
  *
@@ -32,7 +34,20 @@ import org.venylang.veny.parser.ast.Expression;
  *
  * <p>This is a read operation, not an assignment.
  */
-public record GetExpr(Expression target, String field) implements Expression {
+public class GetExpr extends Expression {
+    private final Expression target;
+    private final String field;
+
+    /**
+     * Constructs a new object instantiation get expression.
+     *
+     * @param target The expression evaluating to the object
+     * @param field he field name being accessed
+     */
+    public GetExpr(Expression target, String field) {
+        this.target = Objects.requireNonNull(target, "target must not be null");
+        this.field = Objects.requireNonNull(field, "field must not be null");
+    }
 
     /**
      * Creates a new field access expression (e.g., obj.field).
@@ -46,6 +61,14 @@ public record GetExpr(Expression target, String field) implements Expression {
         java.util.Objects.requireNonNull(target, "target must not be null");
         java.util.Objects.requireNonNull(field, "field must not be null");
         return new GetExpr(target, field);
+    }
+
+    public Expression target() {
+        return target;
+    }
+
+    public String field() {
+        return field;
     }
 
     /**

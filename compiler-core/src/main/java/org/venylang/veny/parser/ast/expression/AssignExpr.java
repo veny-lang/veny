@@ -20,6 +20,8 @@ package org.venylang.veny.parser.ast.expression;
 import org.venylang.veny.parser.ast.AstVisitor;
 import org.venylang.veny.parser.ast.Expression;
 
+import java.util.Objects;
+
 /**
  * Represents an assignment expression in the AST.
  *
@@ -34,7 +36,20 @@ import org.venylang.veny.parser.ast.Expression;
  * This class handles only simple variable assignments (not object field or array element assignments).
  * For object fields (e.g., obj.field = value), use {@link SetExpr}.
  */
-public record AssignExpr(String name, Expression value) implements Expression {
+public class AssignExpr extends Expression {
+    private final String name;
+    private final Expression value;
+
+    /**
+     * Constructs an assignment expression.
+     *
+     * @param name  The variable name being assigned to.
+     * @param value The expression representing the assigned value.
+     */
+    public AssignExpr(String name, Expression value) {
+        this.name = Objects.requireNonNull(name, "name must not be null");
+        this.value = Objects.requireNonNull(value, "value must not be null");
+    }
 
     /**
      * Constructs an assignment expression.
@@ -44,6 +59,14 @@ public record AssignExpr(String name, Expression value) implements Expression {
      */
     public static AssignExpr of(String name, Expression value) {
         return new AssignExpr(name, value);
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public Expression value() {
+        return value;
     }
 
     @Override

@@ -797,7 +797,8 @@ public class RecursiveDescentParser implements Parser {
     }
 
     /**
-     * Parses primary expressions: literals, variables, array literals, function calls, member access.
+     * Parses primary expressions: literals, variables, array literals - [...], method calls, member access - foo.bar,
+     * chained calls - foo.bar()
      *
      * @return a parsed {@link Expression}
      * @throws ParseException if the token is unexpected or malformed
@@ -813,6 +814,13 @@ public class RecursiveDescentParser implements Parser {
             }
             expect(TokenType.RBRACKET);
             return new ArrayLiteralExpr(elements, null); // element type is not known yet. Will be added in semantic analysis
+        }
+
+        // ✅ New: grouping support - ( exp )
+        if (match(TokenType.LPAREN)) {
+            Expression expr = parseExpression();
+            expect(TokenType.RPAREN);
+            return expr;
         }
 
         Token token = expectAny(TokenType.IDENTIFIER, TokenType.INT_LITERAL,
@@ -858,6 +866,11 @@ public class RecursiveDescentParser implements Parser {
                 } else {
                     expr = target;
                 }
+            } else if (match(TokenType.LBRACKET)) {
+                // index operator: expr[ index_expr ]
+                Expression index = parseExpression();
+                expect(TokenType.RBRACKET);
+                expr = IndexExpr.of(expr, index);
             } else {
                 break;
             }

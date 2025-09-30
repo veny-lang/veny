@@ -31,7 +31,22 @@ import java.util.Objects;
  *   myVariable
  * }</pre>
  */
-public record VariableExpr(String name) implements Expression {
+public class VariableExpr extends Expression {
+    private final String name;
+
+    /**
+     * Creates a new variable expression.
+     *
+     * @param name The name of the variable.
+     * @throws NullPointerException if name is null.
+     */
+    public VariableExpr(String name) {
+        this.name = Objects.requireNonNull(name, "name must not be null");
+    }
+
+    public String name() {
+        return name;
+    }
 
     /**
      * Creates a new variable expression.

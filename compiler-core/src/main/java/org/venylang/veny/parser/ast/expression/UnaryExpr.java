@@ -31,7 +31,21 @@ import java.util.Objects;
  *   !flag
  * }</pre>
  */
-public record UnaryExpr(String operator, Expression operand) implements Expression {
+public class UnaryExpr extends Expression {
+    private final String operator;
+    private final Expression operand;
+
+    /**
+     * Constructs a UnaryExpr with the given operator and operand.
+     *
+     * @param operator The unary operator (e.g., "-", "!").
+     * @param operand  The expression the operator is applied to.
+     * @throws NullPointerException if operator or operand is null
+     */
+    public UnaryExpr(String operator, Expression operand) {
+        this.operator = Objects.requireNonNull(operator, "operator must not be null");
+        this.operand = Objects.requireNonNull(operand, "operand must not be null");
+    }
 
     /**
      * Creates a new unary expression.
@@ -45,6 +59,14 @@ public record UnaryExpr(String operator, Expression operand) implements Expressi
         Objects.requireNonNull(operator, "operator must not be null");
         Objects.requireNonNull(operand, "operand must not be null");
         return new UnaryExpr(operator, operand);
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public Expression getOperand() {
+        return operand;
     }
 
     /**

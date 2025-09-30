@@ -17,6 +17,8 @@
 
 package org.venylang.veny.parser.ast;
 
+import org.venylang.veny.semantic.Type;
+
 /**
  * Represents an expression node in the Veny language abstract syntax tree.
  * <p>
@@ -25,4 +27,14 @@ package org.venylang.veny.parser.ast;
  * All expressions are also {@link AstNode}s and participate in tree traversal,
  * analysis, and code generation.
  */
-public interface Expression extends AstNode {}
+public abstract class Expression implements AstNode {
+    private Type resolvedType; // null until semantic analysis fills it
+
+    public Type getResolvedType() {
+        return resolvedType;
+    }
+
+    public void setResolvedType(Type resolvedType) {
+        this.resolvedType = resolvedType;
+    }
+}

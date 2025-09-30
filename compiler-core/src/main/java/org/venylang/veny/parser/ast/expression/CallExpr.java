@@ -39,16 +39,18 @@ import java.util.Objects;
  * @param callee    The expression identifying the function or method being called.
  * @param arguments The list of argument expressions passed to the call.
  */
-public record CallExpr(Expression callee, List<Expression> arguments) implements Expression {
+public class CallExpr extends Expression {
+    private final Expression callee;
+    private final List<Expression> arguments;
 
     /**
      * Constructs a {@code CallExpr}, ensuring non-null fields.
      *
      * @throws NullPointerException if {@code callee} or {@code arguments} is {@code null}.
      */
-    public CallExpr {
-        Objects.requireNonNull(callee, "callee must not be null");
-        Objects.requireNonNull(arguments, "arguments must not be null");
+    public CallExpr(Expression callee, List<Expression> arguments) {
+        this.callee = Objects.requireNonNull(callee, "callee must not be null");
+        this.arguments = Objects.requireNonNull(arguments, "arguments must not be null");
     }
 
     /**
@@ -71,6 +73,14 @@ public record CallExpr(Expression callee, List<Expression> arguments) implements
      */
     public static CallExpr of(Expression callee, Expression... arguments) {
         return new CallExpr(callee, List.of(arguments));
+    }
+
+    public Expression callee() {
+        return callee;
+    }
+
+    public List<Expression> arguments() {
+        return arguments;
     }
 
     /**

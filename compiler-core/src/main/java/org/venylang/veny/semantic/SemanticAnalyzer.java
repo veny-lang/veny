@@ -56,6 +56,9 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** Track loop nesting for break/continue */
     private int loopDepth = 0;
 
+    /** Track current method symbol */
+    private MethodSymbol currentMethod = null;
+
     public SemanticAnalyzer(GlobalScope globalScope, ErrorReporter errorReporter) {
         this.globalScope = globalScope;
         this.errorReporter = errorReporter;
@@ -239,6 +242,10 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
                 currentScope()
         );
         currentScope().define(method);
+
+        MethodSymbol prevMethod = currentMethod;
+        currentMethod = method;
+
         enterScope(method);
 
         try {
@@ -269,6 +276,8 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
             // Exit method scope
             exitScope();
         }
+
+        currentMethod = prevMethod;
         return null;
     }
 
@@ -330,13 +339,29 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(ReturnStmt node) {
-        MethodSymbol method = (MethodSymbol) currentScope();
-        Type expected = method.returnType();
+        if (currentMethod == null) {
+            error("Return statement not inside a method");
+            return null;
+        }
+
+        Type expected = currentMethod.returnType();
 
         if (node.value() != null) {
-            Type actual = getExprType(node.value());
-            if (!expected.isAssignableFrom(actual)) {
+            // Make sure we traverse / type-check the return expression subtree
+            node.value().accept(this);
+
+            // After visiting, the expression node should have its resolved type set
+            Type actual = node.value().getResolvedType();
+            if (actual == null) {
+                error("Could not determine type of return expression");
+            } else if (!expected.isAssignableFrom(actual)) {
                 error("Return type mismatch: expected " + expected + " but got " + actual);
+            }
+            node.value().setResolvedType(actual);
+        } else {
+            // returning nothing; ensure expected is void
+            if (!BuiltinType.VOID.equals(expected)) {
+                error("Return statement missing value, expected " + expected);
             }
         }
         return null;
@@ -392,6 +417,10 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
                 error("Array elements must have the same type");
             }
         }
+        if (elemType == null) {
+            elemType = BuiltinType.NULL; // or some sentinel
+        }
+        node.setResolvedType(new ArrayType(elemType));
         node.elementType(elemType);
         return null;
     }
@@ -401,15 +430,55 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(BinaryExpr node) {
-        node.left().accept(this);
-        node.right().accept(this);
-        return null;
+        node.getLeft().accept(this);
+        node.getRight().accept(this);
+
+        Type leftType = node.getLeft().getResolvedType();
+        Type rightType = node.getRight().getResolvedType();
+
+        // Simplest rule: both sides must match
+        if (!leftType.equals(rightType)) {
+            error("Type mismatch in binary expression: " + leftType + " vs " + rightType);
+            node.setResolvedType(BuiltinType.ERROR);
+            return null;
+        }
+
+        // Decide result type
+        switch (node.getOperator()) {
+            case "+", "-", "*", "/" -> {
+                if (!leftType.equals(BuiltinType.INT)) {
+                    error("Arithmetic operators require Int");
+                }
+                node.setResolvedType(BuiltinType.INT);
+            }
+            case "==" , "!=" , "<" , "<=" , ">" , ">=" -> {
+                node.setResolvedType(BuiltinType.BOOL);
+            }
+            default -> error("Unsupported operator: " + node.getOperator());
+        }        return null;
     }
 
     /** {@inheritDoc} */
     @Override
     public Void visit(UnaryExpr node) {
-        node.operand().accept(this);
+        node.getOperand().accept(this);
+        Type operandType = node.getOperand().getResolvedType();
+
+        switch (node.getOperator()) {
+            case "-" -> {
+                if (!operandType.equals(BuiltinType.INT)) {
+                    error("Unary - requires Int");
+                }
+                node.setResolvedType(BuiltinType.INT);
+            }
+            case "!" -> {
+                if (!operandType.equals(BuiltinType.BOOL)) {
+                    error("Unary ! requires Bool");
+                }
+                node.setResolvedType(BuiltinType.BOOL);
+            }
+            default -> error("Unsupported unary operator: " + node.getOperator());
+        }
         return null;
     }
 
@@ -425,8 +494,9 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         Symbol symbol = currentScope().resolve(node.name());
         if (symbol == null) {
             error("Undefined variable: " + node.name());
+            node.setResolvedType(BuiltinType.ERROR);
         } else {
-            // TODO: Associate resolved symbol with node
+            node.setResolvedType(symbol.getType());
         }
         return null;
     }
@@ -434,13 +504,34 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(AssignExpr node) {
+        // Visit the RHS expression first
         node.value().accept(this);
 
+        // Resolve the variable symbol
         Symbol targetSym = currentScope().resolve(node.name());
         if (targetSym == null) {
             error("Undefined variable: " + node.name());
-        } else if (targetSym instanceof VariableSymbol varSym && !varSym.isMutable()) {
-            error("Cannot assign to immutable variable: " + node.name());
+            node.setResolvedType(BuiltinType.ERROR);
+            return null;
+        }
+
+        if (targetSym instanceof VariableSymbol varSym) {
+            if (!varSym.isMutable()) {
+                error("Cannot assign to immutable variable: " + node.name());
+            }
+
+            Type varType = varSym.getType();
+            Type valueType = node.value().getResolvedType();
+
+            if (!varType.isAssignableFrom(valueType)) {
+                error("Type mismatch: cannot assign " + valueType + " to " + varType);
+            }
+
+            // The type of an assignment expression is the type of the variable (like in Java, C#, etc.)
+            node.setResolvedType(varType);
+        } else {
+            error("Cannot assign to non-variable symbol: " + node.name());
+            node.setResolvedType(BuiltinType.ERROR);
         }
         return null;
     }
@@ -452,19 +543,45 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         for (Expression arg : node.arguments()) {
             arg.accept(this);
         }
-        // Optional: validate callee type / arity
+
+        Type calleeType = node.callee().getResolvedType();
+        if (!(calleeType instanceof CallableType callableType)) {
+            error("Cannot call non-callable type: " + calleeType);
+            node.setResolvedType(BuiltinType.ERROR);
+            return null;
+        }
+
+        // Arity check
+        if (callableType.paramTypes().size() != node.arguments().size()) {
+            error("Wrong number of arguments in call");
+        }
+
+        // Type check arguments
+        for (int i = 0; i < node.arguments().size(); i++) {
+            Type argType = node.arguments().get(i).getResolvedType();
+            if (!callableType.paramTypes().get(i).isAssignableFrom(argType)) {
+                error("Argument type mismatch at position " + i);
+            }
+        }
+
+        node.setResolvedType(callableType.returnType());
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
     public Void visit(NewExpr node) {
+        // If NewExpr has arguments or other children, analyze them
+        if (!node.arguments().isEmpty()) {
+            for (Expression arg : node.arguments()) {
+                arg.accept(this);
+            }
+        }
+
+        // optionally: validate class exists
         Symbol cls = currentScope().resolve(node.className());
         if (!(cls instanceof ClassSymbol)) {
             error("Unknown class: " + node.className());
-        }
-        for (Expression arg : node.arguments()) {
-            arg.accept(this);
         }
         return null;
     }
@@ -472,7 +589,26 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
     /** {@inheritDoc} */
     @Override
     public Void visit(GetExpr node) {
+        // First analyze the target expression
         node.target().accept(this);
+        Type targetType = node.target().getResolvedType();
+
+        if (targetType instanceof ClassType clsType) {
+            ClassSymbol cls = clsType.getClassSymbol();
+
+            // Look up the field
+            VariableSymbol field = cls.getField(node.field());
+            if (field == null) {
+                error("Unknown field '" + node.field() + "' in class " + cls.getName());
+                node.setResolvedType(BuiltinType.ERROR);
+            } else {
+                node.setResolvedType(field.getType());
+            }
+
+        } else {
+            error("Field access '" + node.field() + "' on non-class type: " + targetType);
+            node.setResolvedType(BuiltinType.ERROR);
+        }
         return null;
     }
 
@@ -482,6 +618,26 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         node.target().accept(this); // resolve object
         node.value().accept(this);
         // Optional: validate field exists in class/type
+        return null;
+    }
+
+    @Override
+    public Void visit(IndexExpr node) {
+        node.target().accept(this);
+        node.index().accept(this);
+
+        Type targetType = node.target().getResolvedType();
+        Type indexType = node.index().getResolvedType();
+
+        if (!(targetType instanceof ArrayType arr)) {
+            error("Indexing non-array type: " + targetType);
+            node.setResolvedType(BuiltinType.ERROR);
+            return null;
+        }
+        if (!indexType.equals(BuiltinType.INT)) {
+            error("Array index must be Int");
+        }
+        node.setResolvedType(arr.getElementType());
         return null;
     }
 
@@ -518,11 +674,23 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         return null;
     }
 
+    /**
+     * Returns a Type for literal / variable / array / new / index / call.
+     *
+     * @param expr
+     * @return
+     */
     private Type getExprType(Expression expr) {
-        if (expr instanceof LiteralExpr lit) {
-            return lit.type(); // assuming LiteralExpr stores its type (e.g. Int, Text, Bool)
+        if (expr == null) {
+            return null;
         }
 
+        // ───────────── Literals ─────────────
+        if (expr instanceof LiteralExpr lit) {
+            return lit.getType(); // assuming LiteralExpr stores its type (e.g. Int, Text, Bool)
+        }
+
+        // ───────────── Variables ─────────────
         if (expr instanceof VariableExpr var) {
             Symbol sym = currentScope().resolve(var.name());
             if (sym instanceof VariableSymbol v) {
@@ -533,8 +701,8 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         }
 
         if (expr instanceof BinaryExpr bin) {
-            Type left = getExprType(bin.left());
-            Type right = getExprType(bin.right());
+            Type left = getExprType(bin.getLeft());
+            Type right = getExprType(bin.getRight());
             // Example rule: both sides must match
             if (left != null && !left.equals(right)) {
                 error("Type mismatch in binary expression: " + left + " vs " + right);
@@ -543,23 +711,48 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
         }
 
         if (expr instanceof CallExpr call) {
-            // Assume callee resolves to a method symbol
-            if (call.callee() instanceof VariableExpr fnVar) {
+            // two main uses: factory calls like Int.of(...) or constructor-style like Calculator(...)
+            Expression callee = call.callee();
+
+            // Case 1: constructor-style
+            if (callee instanceof VariableExpr fnVar) {
+                Symbol sym = currentScope().resolve(fnVar.name());
+                if (sym instanceof ClassSymbol cls) {// returning nothing; ensure expected is void
+                    return new ClassType(cls);
+                }
+            }
+
+            // Case 2: factory call like Int.of(...)
+            if (callee instanceof GetExpr get) {
+                if (get.target() instanceof VariableExpr v) {
+                    String t = v.name();
+                    if ("Int".equals(t) && "of".equals(get.field())) return BuiltinType.INT;
+                    if ("Text".equals(t) && "of".equals(get.field())) return BuiltinType.TEXT;
+                    if ("Bool".equals(t) && "of".equals(get.field())) return BuiltinType.BOOL;
+                    // add Bool.of, etc.
+                }
+            }
+
+            // Case 3: normal method call
+            if (callee instanceof VariableExpr fnVar) {
                 Symbol sym = currentScope().resolve(fnVar.name());
                 if (sym instanceof MethodSymbol m) {
                     return m.returnType();
                 }
             }
+
             error("Unable to resolve call expression");
             return null;
         }
 
+        // ───────────── Object creation ─────────────
         if (expr instanceof NewExpr n) {
             // new ClassName() → resolve ClassSymbol
             Type t = resolveType(n.className());
             return t;
         }
 
+        // ───────────── Array literals ─────────────
         if (expr instanceof ArrayLiteralExpr arr) {
             if (!arr.elements().isEmpty()) {
                 Type firstElemType = getExprType(arr.elements().get(0));
@@ -574,6 +767,65 @@ public class SemanticAnalyzer implements AstVisitor<Void> {
             }
             error("Cannot infer type for empty array literal");
             return null;
+        }
+
+        // ───────────── Index expressions ─────────────
+        if (expr instanceof IndexExpr idx) {
+            Type targetType = getExprType(idx.target());
+            if (targetType instanceof ArrayType at) {
+                return at.getElementType();
+            }
+            error("Indexing a non-array type: " + targetType);
+            return null;
+        }
+
+        // ───────────── Member access (foo.bar) ─────────────
+        if (expr instanceof GetExpr get) {
+            // Handle something like Int.of, Console.println, object.field
+            Type targetType = getExprType(get.target());
+
+            // Static access: e.g. Int.of
+            // If target is a class symbol (static access), treat accordingly
+            if (get.target() instanceof VariableExpr v) {
+                Symbol sym = currentScope().resolve(v.name());
+                if (sym instanceof ClassSymbol cls) {
+                    Symbol member = cls.resolve(get.field());
+                    if (member instanceof MethodSymbol m) return m.returnType();
+                    if (member instanceof VariableSymbol f) return f.getType();
+                }
+            }
+
+            // Instance access: e.g. calc.result
+            // If target is an instance type, resolve member type (field/method)
+            if (targetType instanceof ClassType ct) {
+                Symbol member = ct.getClassSymbol().resolve(get.field());
+                if (member instanceof VariableSymbol v) return v.getType();
+                if (member instanceof MethodSymbol m) return m.returnType();
+            }
+
+            error("Unknown member: " + get.field());
+            return null;
+        }
+
+        // ───────────── Binary expressions ─────────────
+        if (expr instanceof BinaryExpr bin) {
+            Type left = getExprType(bin.getLeft());
+            Type right = getExprType(bin.getRight());
+
+            if (left != null && right != null) {
+                switch (bin.getOperator()) {
+                    case "+", "-", "*", "/" -> {
+                        if (!left.equals(right)) {
+                            error("Type mismatch in binary expression: " + left + " vs " + right);
+                        }
+                        return left; // result same as operands
+                    }
+                    case "==", "!=", "<", "<=", ">", ">=" -> {
+                        return BuiltinType.BOOL;
+                    }
+                }
+            }
+            return left;
         }
 
         // Fallback

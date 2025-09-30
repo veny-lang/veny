@@ -27,15 +27,37 @@ import java.util.Objects;
 /**
  * Represents a literal value in the AST, such as a number, string, or boolean.
  */
-public record LiteralExpr(Object value, Type type) implements Expression {
+public class LiteralExpr extends Expression {
+    private final Object value;
+    private final Type type;
 
-  /**
-   * Creates a new literal expression with the given value.
-   *
-   * @param value The literal value, e.g., an Integer, String, Boolean, etc.
-   * @return a new LiteralExpr instance wrapping the value.
-   */
-  public static LiteralExpr of(Object value) {
+    /**
+     * Constructs a new LiteralExpr with the given value and type.
+     *
+     * @param value the literal value (Integer, String, Boolean, etc.)
+     * @param type  the resolved type for this literal
+     */
+    public LiteralExpr(Object value, Type type) {
+        this.value = value;
+        this.type = Objects.requireNonNull(type, "type must not be null");
+        this.setResolvedType(type); // sync with Expression's resolvedType
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    /**
+    * Creates a new literal expression with the given value.
+    *
+    * @param value The literal value, e.g., an Integer, String, Boolean, etc.
+    * @return a new LiteralExpr instance wrapping the value.
+    */
+    public static LiteralExpr of(Object value) {
     Objects.requireNonNull(value, "value must not be null");
     if (value instanceof Integer) {
         return new LiteralExpr(value, BuiltinType.INT);
@@ -50,27 +72,27 @@ public record LiteralExpr(Object value, Type type) implements Expression {
         return new LiteralExpr(null, BuiltinType.NULL);
     }
     throw new IllegalArgumentException("Unsupported literal type: " + value);
-  }
+    }
 
-  /**
-   * Accepts a visitor, dispatching to the visitor's method for literal expressions.
-   *
-   * @param visitor The visitor to process this AST node.
-   * @param <R>     The return type of the visitor.
-   * @return The result of the visitor's processing.
-   */
-  @Override
-  public <R> R accept(AstVisitor<R> visitor) {
+    /**
+    * Accepts a visitor, dispatching to the visitor's method for literal expressions.
+    *
+    * @param visitor The visitor to process this AST node.
+    * @param <R>     The return type of the visitor.
+    * @return The result of the visitor's processing.
+    */
+    @Override
+    public <R> R accept(AstVisitor<R> visitor) {
     return visitor.visit(this);
-  }
+    }
 
-  /**
-   * Returns a string representation of this literal expression.
-   *
-   * @return a string in the format "LiteralExpr(value)"
-   */
-  @Override
-  public String toString() {
+    /**
+    * Returns a string representation of this literal expression.
+    *
+    * @return a string in the format "LiteralExpr(value)"
+    */
+    @Override
+    public String toString() {
     return "LiteralExpr(" + value + " : " + type + ")";
-  }
+    }
 }

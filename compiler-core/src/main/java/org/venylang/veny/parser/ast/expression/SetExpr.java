@@ -30,7 +30,25 @@ import java.util.Objects;
  *   user.age = 30
  * }</pre>
  */
-public record SetExpr(Expression target, String field, Expression value) implements Expression {
+public class SetExpr extends Expression {
+
+    private final Expression target;
+    private final String field;
+    private final Expression value;
+
+    /**
+     * Creates a new field assignment expression (e.g., obj.field = value).
+     *
+     * @param target The object whose field is being assigned (e.g., VariableExpr("user")).
+     * @param field  The field name (e.g., "age").
+     * @param value  The value to assign to the field.
+     * @throws NullPointerException if target, field, or value is null.
+     */
+    public SetExpr(Expression target, String field, Expression value) {
+        this.target = Objects.requireNonNull(target, "target must not be null");
+        this.field = Objects.requireNonNull(field, "field must not be null");
+        this.value = Objects.requireNonNull(value, "value must not be null");
+    }
 
     /**
      * Creates a new field assignment expression (e.g., obj.field = value).
@@ -46,6 +64,18 @@ public record SetExpr(Expression target, String field, Expression value) impleme
         Objects.requireNonNull(field, "field must not be null");
         Objects.requireNonNull(value, "value must not be null");
         return new SetExpr(target, field, value);
+    }
+
+    public Expression target() {
+        return target;
+    }
+
+    public String field() {
+        return field;
+    }
+
+    public Expression value() {
+        return value;
     }
 
     /**

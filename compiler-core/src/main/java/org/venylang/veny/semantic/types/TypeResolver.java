@@ -34,6 +34,7 @@ public final class TypeResolver {
         builtins.put("Bool", BuiltinType.BOOL);
         builtins.put("void", BuiltinType.VOID);
         builtins.put("null", BuiltinType.NULL);
+        builtins.put("<error>", BuiltinType.ERROR);
     }
 
     /**

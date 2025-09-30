@@ -31,6 +31,9 @@ public final class BuiltinType extends Type {
     public static final BuiltinType VOID = new BuiltinType("void");
     public static final BuiltinType NULL = new BuiltinType("null");
 
+    // Special type used internally to recover from errors
+    public static final BuiltinType ERROR = new BuiltinType("<error>");
+
     private final String name;
 
     private BuiltinType(String name) {
@@ -44,6 +47,9 @@ public final class BuiltinType extends Type {
 
     @Override
     public boolean isAssignableFrom(Type other) {
+        // Error is "compatible with everything" so analysis can continue
+        if (this == ERROR || other == ERROR) return true;
+
         if (this == BuiltinType.NULL) return other == BuiltinType.NULL;
         if (other == BuiltinType.NULL) return true; // assign null to any class type
         return this == other;

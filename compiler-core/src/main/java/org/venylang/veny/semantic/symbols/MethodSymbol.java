@@ -20,6 +20,7 @@ package org.venylang.veny.semantic.symbols;
 import org.venylang.veny.semantic.Scope;
 import org.venylang.veny.semantic.Symbol;
 import org.venylang.veny.semantic.Type;
+import org.venylang.veny.semantic.types.CallableType;
 import org.venylang.veny.util.Visibility;
 
 import java.util.LinkedHashMap;
@@ -36,6 +37,7 @@ public class MethodSymbol extends Symbol implements Scope {
     private final Map<String, Symbol> parameters = new LinkedHashMap<>();
     private final Map<String, Symbol> locals = new LinkedHashMap<>();
     private final Type returnType;
+    //private final CallableType type;
 
     /**
      * Constructs a new MethodSymbol.

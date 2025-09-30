@@ -32,7 +32,21 @@ import java.util.Objects;
  *   new MyClass(arg1, arg2)
  * }</pre>
  */
-public record NewExpr(String className, List<Expression> arguments) implements Expression {
+public class NewExpr extends Expression {
+    private final String className;
+    private final List<Expression> arguments;
+
+    /**
+     * Constructs a new object instantiation expression.
+     *
+     * @param className The name of the class to instantiate.
+     * @param arguments The list of argument expressions passed to the constructor.
+     * @throws NullPointerException if className or arguments is null.
+     */
+    public NewExpr(String className, List<Expression> arguments) {
+       this.className = Objects.requireNonNull(className, "className must not be null");
+        this.arguments = Objects.requireNonNull(arguments, "arguments must not be null");
+    }
 
     /**
      * Creates a new object instantiation expression.
@@ -46,6 +60,14 @@ public record NewExpr(String className, List<Expression> arguments) implements E
         Objects.requireNonNull(className, "className must not be null");
         Objects.requireNonNull(arguments, "arguments must not be null");
         return new NewExpr(className, arguments);
+    }
+
+    public String className() {
+        return className;
+    }
+
+    public List<Expression> arguments() {
+        return arguments;
     }
 
     /**

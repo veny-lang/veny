@@ -302,6 +302,7 @@ public class CompilerPipeline {
                 .build();
 
         VenyFile ast = parseSingleFile(source, parseContext);
+        System.out.println("Parsed AST: " + ast);
         astCache.put(path, ast);
         return ast;
     }

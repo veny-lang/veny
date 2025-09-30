@@ -107,4 +107,5 @@ public interface AstVisitor<R> {
     R visit(GetExpr node);
     R visit(SetExpr node);
     R visit(ArrayLiteralExpr node);
+    R visit(IndexExpr node);
 }

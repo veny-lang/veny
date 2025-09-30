@@ -271,6 +271,11 @@ public final class VenyInt implements VenyObject {
         return new VenyText(Integer.toString(value));
     }
 
+    @Override
+    public String toString() {
+        return String.valueOf(value);
+    }
+
     // ─────────────────────────────
     // Future Enhancements
     // ─────────────────────────────

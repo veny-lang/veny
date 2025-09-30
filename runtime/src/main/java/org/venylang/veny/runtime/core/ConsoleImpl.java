@@ -83,6 +83,20 @@ public final class ConsoleImpl implements Console {
     }
 
     /**
+     * Prints a (@link VenyInt} to the console followed by a newline.
+     *
+     * <p>This method is synchronized on {@code System.out} to ensure thread-safe output.</p>
+     *
+     * @param venyInt the integer value to print
+     */
+    @Override
+    public void println(VenyInt venyInt) {
+        synchronized (System.out) {
+            System.out.print(venyInt.raw());
+        }
+    }
+
+    /**
      * Returns a textual representation of this console instance.
      *
      * @return a {@link VenyText} with the value {@code "<Console>"}

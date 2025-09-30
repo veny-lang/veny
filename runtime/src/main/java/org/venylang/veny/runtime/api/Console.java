@@ -17,9 +17,11 @@
 
 package org.venylang.veny.runtime.api;
 
+import org.venylang.veny.runtime.core.VenyInt;
 import org.venylang.veny.runtime.core.VenyText;
 
 public interface Console extends VenyObject {
     void print(VenyText msg);
     void println(VenyText msg);
+    void println(VenyInt venyInt);
 }

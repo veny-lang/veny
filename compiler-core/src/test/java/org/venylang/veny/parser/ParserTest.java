@@ -121,9 +121,9 @@ public class ParserTest {
 
         assertEquals(3, elements.size());
         assertTrue(elements.get(0) instanceof LiteralExpr);
-        assertEquals(1, ((LiteralExpr) elements.get(0)).value());
-        assertEquals(2, ((LiteralExpr) elements.get(1)).value());
-        assertEquals(3, ((LiteralExpr) elements.get(2)).value());
+        assertEquals(1, ((LiteralExpr) elements.get(0)).getValue());
+        assertEquals(2, ((LiteralExpr) elements.get(1)).getValue());
+        assertEquals(3, ((LiteralExpr) elements.get(2)).getValue());
     }
 
 }

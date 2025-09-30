@@ -20,6 +20,8 @@ package org.venylang.veny.codegen;
 import org.venylang.veny.parser.ast.*;
 import org.venylang.veny.parser.ast.expression.*;
 import org.venylang.veny.parser.ast.statement.*;
+import org.venylang.veny.semantic.Type;
+import org.venylang.veny.semantic.types.BuiltinType;
 import org.venylang.veny.util.Visibility;
 
 import java.time.LocalDate;
@@ -58,6 +60,8 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     private boolean insideEntryMethod = false; // tracks if inside entry() method
     private String currentClassName = null;
     private final Set<String> usedRuntimeImports = new HashSet<>();
+    private final Set<String> knownClasses = new HashSet<>();
+    private String currentMethodName = null;
 
     private JavaCodeGenerator() {}
 
@@ -69,6 +73,13 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
      */
     public static JavaCodeGenerator of(Program program) {
         JavaCodeGenerator generator = new JavaCodeGenerator();
+
+        for (VenyFile f : program.files()) {
+            for (ClassDecl c : f.classes()) {
+                generator.knownClasses.add(c.name());
+            }
+        }
+
         program.accept(generator);
         return generator;
     }
@@ -123,6 +134,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         String prevClass = currentClassName;
 
         currentClassName = node.name(); // track current class
+        knownClasses.add(currentClassName);
 
         StringBuilder classSignature = new StringBuilder("public class ").append(node.name());
 
@@ -140,6 +152,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         builder.appendLine(classSignature  + " {")
                 .indent();
 
+        // Emit fields
         for (VarDecl field : node.fields()) {
             field.accept(this);
         }
@@ -148,6 +161,45 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             builder.appendRawLine(""); // Blank line between fields and methods
         }
 
+        // Determine whether a user declared a no-arg constructor
+        boolean userHasNoArgCtor = node.methods().stream()
+                .anyMatch(m -> m.name().equals(node.name()) && m.parameters().isEmpty());
+
+        // Track if we generate one
+        boolean generatedNoArgCtor = false;
+
+        // If there's no user no-arg ctor, possibly generate a default one.
+        if (!userHasNoArgCtor) {
+            // Collect final (immutable) fields that need initialization
+            List<VarDecl> finalFieldsNeedingInit = node.fields().stream()
+                    .filter(f -> !f.isMutable() && f.initializer() == null)
+                    .collect(Collectors.toList());
+
+            if (finalFieldsNeedingInit.isEmpty()) {
+                // Safe to emit an empty public no-arg constructor
+                builder.appendLine("public " + node.name() + "() {")
+                        .indent()
+                        .appendLine("// default constructor")
+                        .unindent()
+                        .appendLine("}")
+                        .appendRawLine("");
+            } else {
+                // Emit constructor that initializes final fields to sensible defaults
+                builder.appendLine("public " + node.name() + "() {")
+                        .indent();
+                for (VarDecl f : finalFieldsNeedingInit) {
+                    String defaultVal = defaultValueForType(f.typeName());
+                    // assign to this.field
+                    builder.appendLine("this." + f.name() + " = " + defaultVal + ";");
+                }
+                builder.unindent()
+                        .appendLine("}")
+                        .appendRawLine("");
+            }
+            generatedNoArgCtor = true;
+        }
+
+        // Emit methods (user-defined)
         for (MethodDecl method : node.methods()) {
             method.accept(this);
             builder.appendRawLine(""); // Blank line between methods
@@ -157,22 +209,30 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         boolean hasEntry = node.methods().stream()
                 .anyMatch(m -> m.name().equals("entry"));
 
-        if (hasEntry) {
+        // Final decision: do we have a no-arg ctor?
+        boolean noArgCtorExists = userHasNoArgCtor || generatedNoArgCtor;
+
+        if (hasEntry  && noArgCtorExists) {
             usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyText");
 
             builder.appendRawLine("")
-                    .appendLine("// Auto-generated launcher for Veny's entry")
-                    .appendLine("public static void main(String[] args) {")
-                    .indent()
-                    .appendLine("VenyText[] venyArgs = new VenyText[args.length];")
-                    .appendLine("for (int i = 0; i < args.length; i++) {")
-                    .indent()
-                    .appendLine("venyArgs[i] = VenyText.of(args[i]);")
-                    .unindent()
-                    .appendLine("}")
-                    .appendLine("new " + node.name() + "().entry(venyArgs);")
-                    .unindent()
-                    .appendLine("}");
+                .appendLine("// Auto-generated launcher for Veny's entry")
+                .appendLine("public static void main(String[] args) {")
+                .indent()
+                .appendLine("VenyText[] venyArgs = new VenyText[args.length];")
+                .appendLine("for (int i = 0; i < args.length; i++) {")
+                .indent()
+                .appendLine("venyArgs[i] = VenyText.of(args[i]);")
+                .unindent()
+                .appendLine("}")
+                .appendLine("new " + node.name() + "().entry(venyArgs);")
+                .unindent()
+                .appendLine("}");
+        } else if (hasEntry) {
+            // Could not auto-generate launcher because no safe no-arg constructor
+            builder.appendRawLine("")
+                    .appendLine("// NOTE: no no-arg constructor available; auto-main not generated for this class.")
+                    .appendRawLine("");
         }
 
         builder.unindent()
@@ -213,8 +273,14 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(MethodDecl node) {
+        boolean isConstructor = node.name().equals(currentClassName);
+
         String visibility = node.visibility().toString().toLowerCase();
         String prefix = visibility.equals("default") ? "" : visibility + " ";
+
+        // Track current method
+        String prevMethod = currentMethodName;
+        currentMethodName = node.name();
 
         // Parameters
         StringBuilder params = new StringBuilder();
@@ -228,12 +294,18 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             }
         }
 
-        // Method signature
-        String returnType = mapType(node.returnType());
-        builder.appendLine(prefix + mapType(node.returnType()) + " " + node.name() + "(" + params + ") {")
-                .indent();
+        if (isConstructor) {
+            // Constructor: no return type
+            builder.appendLine(prefix + currentClassName + "(" + params + ") {").indent();
+        } else { // Method signature
+          String returnType = mapType(node.returnType());
+          builder
+              .appendLine(
+                  prefix + mapType(node.returnType()) + " " + node.name() + "(" + params + ") {")
+              .indent();
+        }
 
-        // mark if we're in entry()
+        // Track entry method context; mark if we're in entry()
         boolean prevInside = insideEntryMethod;
         if (node.name().equals("entry")) {
             insideEntryMethod = true;
@@ -244,26 +316,43 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             stmt.accept(this);
         }
 
-        // If return type is void/Void → append VenyVoid.get()
-        if (returnType.equals("org.venylang.veny.runtime.core.VenyVoid")) {
-            builder.appendLine("return org.venylang.veny.runtime.core.VenyVoid.get();");
-        }
 
         insideEntryMethod = prevInside; // restore previous state
-
+        currentMethodName = prevMethod; // restore previous method
         builder.unindent().appendLine("}");
         return null;
     }
 
     @Override
     public Void visit(BlockStmt node) {
+        for (Statement stmt : node.statements()) {
+            stmt.accept(this);
+        }
         return null;
     }
 
     @Override
     public Void visit(IfStmt node) {
+        String condition = exprToJava(node.condition());
+
+        // unwrap VenyBool to primitive boolean
+        Type condType = node.condition().getResolvedType();
+        /*if (condType == BuiltinType.BOOL) {
+            condition = condition + ".raw()";
+        }*/
+
+        builder.appendLine("if (" + condition + ") {").indent();
+        node.thenBranch().accept(this);
+        builder.unindent().appendLine("}");
+
+        if (node.elseBranch() != null) {
+            builder.appendLine("else {").indent();
+            node.elseBranch().accept(this);
+            builder.unindent().appendLine("}");
+        }
         return null;
     }
+
 
     @Override
     public Void visit(WhileStmt node) {
@@ -277,11 +366,14 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(ReturnStmt node) {
+        // Skip return statements in constructors
+        if (currentClassName != null && insideConstructor()) {
+            return null;
+        }
+
         if (node.value() == null) {
-            // No value → return VenyVoid.get()
             builder.appendLine("return VenyVoid.get();");
         } else {
-            // Return with expression
             String exprCode = exprToJava(node.value());
             builder.appendLine("return " + exprCode + ";");
         }
@@ -301,7 +393,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     public Void visit(VarStmt node) {
         String javaType = mapType(node.type()); // infer or declared type
         String initializer = (node.initializer() != null)
-                ? exprToString(node.initializer())
+                ? exprToJava(node.initializer())
                 : "null"; // or default for primitives
         builder.appendLine(javaType + " " + node.name() + " = " + initializer + ";");
         return null;
@@ -311,7 +403,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     public Void visit(ValStmt node) {
         String javaType = mapType(node.type());
         String initializer = (node.initializer() != null)
-                ? exprToString(node.initializer())
+                ? exprToJava(node.initializer())
                 : "null";
         builder.appendLine("final " + javaType + " " + node.name() + " = " + initializer + ";");
         return null;
@@ -319,27 +411,7 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(BinaryExpr node) {
-        String left = exprToString(node.left());
-        String right = exprToString(node.right());
-
-        String operator = node.operator();
-        String opMethod = switch (operator) {
-            case "+"  -> "add";
-            case "-"  -> "sub";
-            case "*"  -> "mul";
-            case "/"  -> "div";
-            case "==" -> "eq";
-            case "!=" -> "neq";
-            case "<"  -> "lt";
-            case "<=" -> "lte";
-            case ">"  -> "gt";
-            case ">=" -> "gte";
-            default   -> throw new IllegalStateException("Unsupported operator: " + operator);
-        };
-
-        // Return as string instead of appending directly
-        String exprStr = left + "." + opMethod + "(" + right + ")";
-        builder.appendLine(exprStr + ";"); // if this is a full statement
+        builder.appendLine(exprToJava(node) + ";");
         return null;
     }
 
@@ -355,6 +427,10 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(VariableExpr node) {
+        System.out.println("CG visiting Variable " + node.name());
+        if (node.getResolvedType() == null) {
+            System.err.println("WARNING: Variable " + node.name() + " has null type at codegen!");
+        }
         return null;
     }
 
@@ -365,6 +441,9 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
     @Override
     public Void visit(CallExpr node) {
+        // Code generation for calls should go through exprToJava()
+        // Not directly appended here.
+        builder.appendLine(exprToJava(node) + ";");
         return null;
     }
 
@@ -396,6 +475,29 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
     @Override
     public Void visit(ArrayLiteralExpr arrayLiteralExpr) {
         return null;
+    }
+
+    @Override
+    public Void visit(IndexExpr indexExpr) {
+        String target = exprToJava(indexExpr.target());   // not exprToString
+        String index = exprToJava(indexExpr.index());
+
+        // If index is a VenyInt → call .intValue()
+        if (indexExpr.index() instanceof LiteralExpr lit && lit.getValue() instanceof Integer i) {
+            // Literal number → direct int
+            builder.appendLine(target + "[" + i + "]");
+        } else {
+            // Otherwise, unwrap
+            builder.appendLine(target + "[" + index + ".raw()]");
+        }
+
+        return null;
+    }
+
+    private boolean insideConstructor() {
+        // crude check: in constructor if method name == class name
+        return currentClassName != null && currentMethodName != null
+                && currentClassName.equals(currentMethodName);
     }
 
     private Void setEntryClassName(ClassDecl node) {
@@ -451,6 +553,25 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         };
     }
 
+    private boolean isVenyIntExpr(Expression expr) {
+        if (expr instanceof LiteralExpr lit && lit.getValue() instanceof Integer) return true;
+        if (expr instanceof VariableExpr var) {
+            String t = var.name(); // if your AST stores type names
+            return "Int".equals(t);
+        }
+        // Fallback
+        return false;
+    }
+
+    private boolean isVenyTextExpr(Expression expr) {
+        if (expr instanceof LiteralExpr lit && lit.getValue() instanceof String) return true;
+        if (expr instanceof VariableExpr var) {
+            String t = var.name();
+            return "Text".equals(t);
+        }
+        return false;
+    }
+
     /**
      * Given an expression generate a compilable Java code
      *
@@ -463,28 +584,59 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         }
 
         if (expr instanceof LiteralExpr lit) {
-            if (lit.value() instanceof String s) {
+            if (lit.getValue() instanceof String s) {
                 usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyText");
                 return "VenyText.of(\"" + s.replace("\"", "\\\"") + "\")";
-            } else if (lit.value() instanceof Integer i) {
+            } else if (lit.getValue() instanceof Integer i) {
                 usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyInt");
                 return "VenyInt.of(" + i + ")";
-            } else if (lit.value() instanceof Boolean b) {
+            } else if (lit.getValue() instanceof Boolean b) {
                 usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyBool");
                 return "VenyBool.of(" + b + ")";
             }
         }
 
         if (expr instanceof VariableExpr var) {
+            // Just return the variable name directly
             return var.name();
         }
 
         if (expr instanceof BinaryExpr bin) {
-            return exprToJava(bin.left()) + " " + bin.operator() + " " + exprToJava(bin.right());
+            String left  = exprToJava(bin.getLeft());
+            String right = exprToJava(bin.getRight());
+
+            Type leftType = bin.getLeft().getResolvedType();
+            Type rightType = bin.getRight().getResolvedType();
+
+            // Integer operations
+            if (leftType == BuiltinType.INT && rightType == BuiltinType.INT) {
+                return switch (bin.getOperator()) {
+                    case "+" -> left + ".add(" + right + ")";
+                    case "-" -> left + ".sub(" + right + ")";
+                    case "*" -> left + ".mul(" + right + ")";
+                    case "/" -> left + ".div(" + right + ")";
+                    default -> "/* unsupported operator " + bin.getOperator() + " */";
+                };
+            }
+
+            // ────────────────────────────────
+            // Text operations
+            // ────────────────────────────────
+            if (leftType == BuiltinType.TEXT && rightType == BuiltinType.TEXT) {
+                return switch (bin.getOperator()) {
+                    case "+"  -> left + ".add(" + right + ")";
+                    case "==" -> left + ".equalsTo(" + right + ").raw()";
+                    case "!=" -> "!" + left + ".equals(" + right + ")";
+                    default   -> "/* unsupported operator " + bin.getOperator() + " */";
+                };
+            }
+
+            // fallback raw operator (if needed)
+            return left + " " + bin.getOperator() + " " + right;
         }
 
         if (expr instanceof UnaryExpr un) {
-            return un.operator() + exprToJava(un.operand());
+            return un.getOperator() + exprToJava(un.getOperand());
         }
 
         if (expr instanceof CallExpr call) {
@@ -497,9 +649,10 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             //DEBUG System.out.println("CallExpr debug: calleeExpr class = " + calleeExpr.getClass().getSimpleName());
 
             if (calleeExpr instanceof VariableExpr var) {
-                if (var.name().equals(currentClassName)) {
-                    // calling constructor of same class → skip
-                    return "";
+                String name = var.name();
+                if (knownClasses.contains(name)) {
+                    // constructor call: Calculator(a,b) -> new Calculator(a,b)
+                    return "new " + name + "(" + args + ")";
                 }
                 return var.name() + "(" + args + ")";
             }
@@ -507,13 +660,62 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             if (calleeExpr instanceof GetExpr get) {
                 String target = exprToJava(get.target());
 
-                // Special-case Console.println / Console.print
-                if (target.equals("Console") && (get.field().equals("println") || get.field().equals("print"))) {
+                if ((target.equals("Int") || target.equals("Bool") || target.equals("Text"))
+                        && get.field().equals("of")) {
+
+                    // common setup
+                    if (call.arguments().size() != 1) {
+                        //TODO error("Builtin factory '" + target + ".of' expects exactly 1 argument");
+                        return "/* error: wrong arity */";
+                    }
+                    Expression argExpr = call.arguments().get(0);
+                    Type argType = argExpr.getResolvedType();
+                    String argJava = exprToJava(argExpr);
+
+                    switch (target) {
+                        case "Int" -> {
+                            usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyInt");
+                            if (argType == BuiltinType.TEXT) {
+                                return "VenyInt.of(Integer.parseInt(" + argJava + ".raw()))";
+                            } else if (argType == BuiltinType.INT) {
+                                return "VenyInt.of(" + argJava + ")";
+                            } else {
+                                //TODO error("Cannot convert " + argType + " to Int");
+                                return "/* error: invalid Int.of(...) */";
+                            }
+                        }
+                        case "Bool" -> {
+                            usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyBool");
+                            if (argType == BuiltinType.TEXT) {
+                                return "VenyBool.of(Boolean.parseBoolean(" + argJava + ".raw()))";
+                            } else if (argType == BuiltinType.BOOL) {
+                                return "VenyBool.of(" + argJava + ")";
+                            } else {
+                                //TODO error("Cannot convert " + argType + " to Bool");
+                                return "/* error: invalid Bool.of(...) */";
+                            }
+                        }
+                        case "Text" -> {
+                            usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyText");
+                            if (argType == BuiltinType.TEXT) {
+                                return argJava; // already a VenyText
+                            } else {
+                                return "VenyText.of(" + argJava + ")";
+                            }
+                        }
+                    }
+                }
+
+                // Console special-case
+                if ("Console".equals(target) &&
+                        (get.field().equals("println") || get.field().equals("print"))) {
                     usedRuntimeImports.add("org.venylang.veny.runtime.core.ConsoleImpl");
                     return "ConsoleImpl.instance()." + get.field() + "(" + args + ")";
                 }
 
-                return (target.isEmpty() ? "" : target + ".") + get.field() + "(" + args + ")";
+                // General: target.method(...)
+                String targetName = exprToJava(get.target());
+                return (targetName.isEmpty() ? "" : targetName + ".") + get.field() + "(" + args + ")";
             }
 
             if (calleeExpr instanceof CallExpr nestedCall) {
@@ -526,7 +728,8 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             }
 
             String callee = exprToJava(calleeExpr);
-            return callee + "(" + args + ")";        }
+            return callee + "(" + args + ")";
+        }
 
         if (expr instanceof NewExpr ne) {
             if (insideEntryMethod && ne.className().equals(currentClassName)) {
@@ -565,6 +768,17 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
             return exprToJava(assign.value()) + " = " + exprToJava(assign.value());
         }
 
+        if (expr instanceof IndexExpr idx) {
+            String target = exprToJava(idx.target());
+            String index = exprToJava(idx.index());
+
+            if (idx.index() instanceof LiteralExpr lit && lit.getValue() instanceof Integer i) {
+                return target + "[" + i + "]";
+            } else {
+                return target + "[" + index + ".intValue()]"; // unwrap VenyInt
+            }
+        }
+
         return "/* unsupported expr */";
     }
 
@@ -574,20 +788,20 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
         }
 
         if (expr instanceof LiteralExpr lit) {
-            if (lit.value() instanceof String s) return "\"" + s.replace("\"", "\\\"") + "\"";
-            return lit.value().toString();
+            if (lit.getValue() instanceof String s) return "\"" + s.replace("\"", "\\\"") + "\"";
+            return lit.getValue().toString();
         }
 
         if (expr instanceof VariableExpr var) return var.name();
 
         if (expr instanceof BinaryExpr bin) {
-            String left  = exprToString(bin.left());
-            String right = exprToString(bin.right());
-            String op = bin.operator(); // can map to method if needed
+            String left  = exprToString(bin.getLeft());
+            String right = exprToString(bin.getRight());
+            String op = bin.getOperator(); // can map to method if needed
             return "(" + left + " " + op + " " + right + ")";
         }
 
-        if (expr instanceof UnaryExpr un) return un.operator() + exprToString(un.operand());
+        if (expr instanceof UnaryExpr un) return un.getOperator() + exprToString(un.getOperand());
 
         if (expr instanceof CallExpr call) {
             String args = call.arguments().stream()
@@ -608,7 +822,59 @@ public class JavaCodeGenerator implements AstVisitor<Void> {
 
         if (expr instanceof AssignExpr assign) return exprToString(assign.value()) + " = " + exprToString(assign.value());
 
-        return "<unsupported-expr>";    }
+        if (expr instanceof IndexExpr idx) {
+            String target = exprToString(idx.target());
+            String index = exprToString(idx.index());
+
+            if (idx.index() instanceof LiteralExpr lit && lit.getValue() instanceof Integer i) {
+                return target + "[" + i + "]";
+            } else {
+                return target + "[" + index + ".raw()]";
+            }
+        }
+
+        return "<unsupported-expr>";
+    }
+
+    /**
+     * Return a simple default Java expression for the given Veny type name.
+     * Adds any required runtime imports to usedRuntimeImports.
+     * For unknown types returns "null".
+     */
+    private String defaultValueForType(String venyType) {
+        if (venyType == null) {
+            usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyVoid");
+            return "VenyVoid.get()";
+        }
+
+        if (venyType.startsWith("[") && venyType.endsWith("]")) {
+            String elem = venyType.substring(1, venyType.length() - 1);
+            return "new " + mapType(elem) + "[]{}";
+        }
+
+        switch (venyType) {
+            case "Int" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyInt");
+                return "VenyInt.of(0)";
+            }
+            case "Text" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyText");
+                return "VenyText.of(\"\")";
+            }
+            case "Bool" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyBool");
+                return "VenyBool.of(false)";
+            }
+            case "Void", "void" -> {
+                usedRuntimeImports.add("org.venylang.veny.runtime.core.VenyVoid");
+                return "VenyVoid.get()";
+            }
+            default -> {
+                // For classes and unknown types fall back to null
+                return "null";
+            }
+        }
+    }
 
     /**
      * Returns a standard auto-generated file header.
