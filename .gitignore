@@ -43,4 +43,3 @@ build/
 .project
 .classpath
 .settings/
-/examples/calculator/generated/calc/app/Calculator.java
